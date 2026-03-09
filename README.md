@@ -4,7 +4,7 @@
 | Nombre                            | Matrícula |
 | --------------------------------- | --------- |
 | Alberto Boughton Reyes            | A01178500 |
-| Diego Octavia Arias Incháustegui  | A00838285 |
+| Diego Octavio Arias Incháustegui  | A00838285 |
 | Fernando Daniel Saucedo Hernández | A01385490 |
 | Valencia Arciga Valencia          | A01737555 |
 | Ximena Montes Bautista            | A01737949 |
