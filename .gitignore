@@ -1,0 +1,5 @@
+*.bin
+*.obj
+
+# Prevent (possibly private) keys from being leaker
+*.pem
