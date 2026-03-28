@@ -25,5 +25,6 @@ with socket.socket() as sock:
 
         ssock.sendall(b"Hello, Server!")
         
-        resp = ssock.recv(1024)
-        print("[*] Received:", resp.decode())
+        data = ssock.recv(1024)
+        print("[*] Received:", data.decode())
+        ssock.close()
