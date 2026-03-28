@@ -25,19 +25,21 @@ if len(sys.argv) != 2:
 # User-supplied password for private key file
 pwd = sys.argv[1].encode()
 
+# Create TLS context
 ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 ctx.minimum_version = ssl.TLSVersion.TLSv1_3
 
 in_script_dir = lambda name: os.path.join(os.path.dirname(__file__), name)
-ctx.load_cert_chain(certfile=in_script_dir("certificate.pem"),
-                    keyfile=in_script_dir("private_key.pem"),
+ctx.load_cert_chain(certfile=in_script_dir("certificate.pem"),   # Certificate file
+                    keyfile=in_script_dir("private_key.pem"),    # Private key
                     password=pwd)
 
 with socket.socket() as sock:
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # Allow immedaite reuse of port
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # Allow immediate reuse of port
     sock.bind((HOST, PORT))
     sock.listen()
 
+    # Listen for clients
     with ctx.wrap_socket(sock, server_side=True) as ssock:
         conn, addr = ssock.accept()
 
