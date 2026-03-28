@@ -25,10 +25,6 @@ if len(sys.argv) != 2:
 # User-supplied password for private key file
 pwd = sys.argv[1].encode()
 
-# Load the private key
-with open(os.path.join(os.path.dirname(__file__), "private_key.pem"), "rb") as f:
-    key = load_pem_private_key(f.read(), pwd)
-
 ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 ctx.minimum_version = ssl.TLSVersion.TLSv1_3
 

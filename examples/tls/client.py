@@ -11,8 +11,6 @@ import ssl
 import socket
 import datetime
 
-from cryptography import x509
-
 HOST = "localhost"
 PORT = 55555
 
