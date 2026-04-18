@@ -773,31 +773,33 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Nombre completo</label>
-          <input class="form-input" placeholder="Ej. María García López"/>
+          <input id="form-name" class="form-input" placeholder="Ej. María García López"/>
         </div>
         <div class="form-group">
           <label class="form-label">Correo institucional</label>
-          <input class="form-input" placeholder="usuario@casamonarca.mx" type="email"/>
+          <input id="form-mail" class="form-input" placeholder="usuario@casamonarca.mx" type="email"/>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Área</label>
-          <select class="form-select">
-            <option>Legal</option>
-            <option>Humanitaria</option>
-            <option>Salud</option>
-            <option>Educativa</option>
-            <option>Administración</option>
+          <label class="form-label">Área / Departamento</label>
+          <select id="form-dept" class="form-select">
+            <option value="Legal">Legal</option>
+            <option value="Humanitaria">Humanitaria</option>
+            <option value="Salud">Salud</option>
+            <option value="Educativa">Educativa</option>
+            <option value="TI">TI</option>
+            <option value="Administración">Administración</option>
           </select>
         </div>
         <div class="form-group">
           <label class="form-label">Nivel de acceso</label>
-          <select class="form-select">
-            <option>Nivel 1 — Administrador</option>
-            <option selected>Nivel 2 — Coordinador</option>
-            <option>Nivel 3 — Operativo</option>
-            <option>Nivel 4 — Captura</option>
+          <!-- valores = Levels enum de api_intf.py -->
+          <select id="form-level" class="form-select">
+            <option value="admin">Nivel 1 — Administrador</option>
+            <option value="coordinador" selected>Nivel 2 — Coordinador</option>
+            <option value="operativo">Nivel 3 — Operativo</option>
+            <option value="captura">Nivel 4 — Captura</option>
           </select>
         </div>
       </div>
@@ -815,11 +817,11 @@
       </div>
       <div class="form-group">
         <label class="form-label">Vigencia del certificado</label>
-        <select class="form-select">
-          <option>4 semanas (predeterminado)</option>
-          <option>3 meses</option>
-          <option>6 meses</option>
-          <option>1 año</option>
+        <select id="form-validity" class="form-select">
+          <option value="4">4 semanas (predeterminado)</option>
+          <option value="13">3 meses</option>
+          <option value="26">6 meses</option>
+          <option value="52">1 año</option>
         </select>
       </div>
       <div class="cert-info-box">
@@ -866,65 +868,215 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const USERS = [
-  { id:1, name:'María López', email:'m.lopez@casamonarca.mx', area:'Legal', level:2, levelLabel:'Coordinadora', perms:['leer','editar'], status:'activo', expires:'2025-06-15', serial:'CM-2024-0041', color:'#E1F5EE', textColor:'#085041', initials:'ML' },
-  { id:2, name:'José Ramírez', email:'j.ramirez@casamonarca.mx', area:'Humanitaria', level:3, levelLabel:'Operativo', perms:['leer','subir'], status:'activo', expires:'2025-05-30', serial:'CM-2024-0037', color:'#E6F1FB', textColor:'#0C447C', initials:'JR' },
-  { id:3, name:'Ana González', email:'a.gonzalez@casamonarca.mx', area:'Salud', level:4, levelLabel:'Captura', perms:['captura','envío'], status:'expirar', expires:'2025-04-28', serial:'CM-2024-0029', color:'#FAEEDA', textColor:'#633806', initials:'AG' },
-  { id:4, name:'Carlos Vega', email:'c.vega@casamonarca.mx', area:'Legal', level:3, levelLabel:'Operativo', perms:['—'], status:'revocado', expires:'—', serial:'CM-2024-0018', color:'#FCEBEB', textColor:'#791F1F', initials:'CV' },
-  { id:5, name:'Lucía Morales', email:'l.morales@casamonarca.mx', area:'Educativa', level:2, levelLabel:'Coordinadora', perms:['leer','editar'], status:'activo', expires:'2025-09-10', serial:'CM-2024-0055', color:'#EEEDFE', textColor:'#3C3489', initials:'LM' },
-  { id:6, name:'Roberto Salas', email:'r.salas@casamonarca.mx', area:'Humanitaria', level:4, levelLabel:'Captura', perms:['captura'], status:'activo', expires:'2025-07-01', serial:'CM-2025-0003', color:'#E1F5EE', textColor:'#085041', initials:'RS' },
-  { id:7, name:'Diana Fuentes', email:'d.fuentes@casamonarca.mx', area:'Salud', level:3, levelLabel:'Operativa', perms:['leer','subir'], status:'activo', expires:'2025-08-20', serial:'CM-2025-0007', color:'#F1EFE8', textColor:'#444441', initials:'DF' },
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+// Cambia este valor si tu backend corre en otro puerto
+const API = 'http://localhost:8000';
+
+// ─── HELPERS DE NIVEL (mapeo desde api_intf.py Levels enum) ──────────────────
+// Backend usa: "admin" | "coordinador" | "operativo" | "captura" | "beneficiario"
+const LEVEL_META = {
+  'admin':        { num: 1, label: 'Administrador',  cls: 'level-1' },
+  'coordinador':  { num: 2, label: 'Coordinador/a',  cls: 'level-2' },
+  'operativo':    { num: 3, label: 'Operativo/a',    cls: 'level-3' },
+  'captura':      { num: 4, label: 'Captura',        cls: 'level-4' },
+  'beneficiario': { num: 4, label: 'Beneficiario',   cls: 'level-4' },
+};
+
+const AVATAR_PALETTE = [
+  { bg:'#E1F5EE', fg:'#085041' }, { bg:'#E6F1FB', fg:'#0C447C' },
+  { bg:'#FAEEDA', fg:'#633806' }, { bg:'#FCEBEB', fg:'#791F1F' },
+  { bg:'#EEEDFE', fg:'#3C3489' }, { bg:'#F1EFE8', fg:'#444441' },
+  { bg:'#E1F5EE', fg:'#085041' }, { bg:'#FBEAF0', fg:'#4B1528' },
 ];
 
-const levelClass = { 1:'level-1', 2:'level-2', 3:'level-3', 4:'level-4' };
-const levelColors = { 1:'Administrador', 2:'Coordinador/a', 3:'Operativo/a', 4:'Captura' };
+function initials(name) {
+  return name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+}
+
+function palette(uid) {
+  const i = parseInt(uid) % AVATAR_PALETTE.length;
+  return AVATAR_PALETTE[i] || AVATAR_PALETTE[0];
+}
+
+// ─── ESTADO LOCAL ─────────────────────────────────────────────────────────────
+// users y certs se cargan del backend; los CSRs pendientes también
+let USERS = [];       // [ User ]  — campos de api_intf.py
+let CERTS = [];       // [ CertificateInfo ]
+let CSRS  = [];       // [ CSRStatus ]
+
+// Índices para joins rápidos en el frontend
+let certsByUid = {};  // uid -> [ CertificateInfo ]
 
 let currentFilter = 'todos';
 let currentSearch = '';
-let currentCertUser = null;
+let currentCertUser = null;   // { user, cert }
 
+// ─── FETCH GENÉRICO ───────────────────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+  try {
+    const res = await fetch(API + path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...opts,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    console.error('API error:', path, e);
+    return null;
+  }
+}
+
+// ─── CARGA INICIAL ────────────────────────────────────────────────────────────
+async function loadAll() {
+  setLoading(true);
+
+  const [users, certs, csrs] = await Promise.all([
+    apiFetch('/users'),
+    apiFetch('/certs'),
+    apiFetch('/csrs'),
+  ]);
+
+  USERS = users  || [];
+  CERTS = certs  || [];
+  CSRS  = csrs   || [];
+
+  // Construir índice cert por uid
+  certsByUid = {};
+  for (const c of CERTS) {
+    if (!certsByUid[c.uid]) certsByUid[c.uid] = [];
+    certsByUid[c.uid].push(c);
+  }
+
+  updateStats();
+  renderTable();
+  updateCsrBadge();
+  setLoading(false);
+}
+
+function setLoading(on) {
+  const body = document.getElementById('table-body');
+  if (on) body.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-hint);font-size:13px">Cargando desde el backend…</td></tr>`;
+}
+
+// ─── STATS ────────────────────────────────────────────────────────────────────
+function updateStats() {
+  const total    = USERS.length;
+  const active   = CERTS.filter(c => !c.revocated).length;
+  const revoked  = CERTS.filter(c => c.revocated).length;
+  const soon     = CERTS.filter(c => {
+    if (c.revocated) return false;
+    const daysLeft = (new Date(c.not_after) - Date.now()) / 86400000;
+    return daysLeft >= 0 && daysLeft <= 30;
+  }).length;
+
+  document.querySelector('.stat-card.green .stat-val').textContent  = total;
+  document.querySelector('.stat-card.blue .stat-val').textContent   = active;
+  document.querySelector('.stat-card.red .stat-val').textContent    = revoked;
+  document.querySelector('.stat-card.amber .stat-val').textContent  = soon;
+}
+
+function updateCsrBadge() {
+  // Actualiza el badge de CSRs pendientes en el sidebar (si existiera)
+  // Por ahora solo logueamos
+  console.log(`CSRs pendientes: ${CSRS.length}`);
+}
+
+// ─── HELPERS DE CERT ──────────────────────────────────────────────────────────
+// Dado un usuario, retorna su cert más reciente (o null)
+function latestCert(uid) {
+  const certs = certsByUid[uid];
+  if (!certs || certs.length === 0) return null;
+  return certs.sort((a, b) => new Date(b.not_after) - new Date(a.not_after))[0];
+}
+
+function certStatus(cert) {
+  if (!cert) return 'sin-cert';
+  if (cert.revocated) return 'revocado';
+  const daysLeft = (new Date(cert.not_after) - Date.now()) / 86400000;
+  if (daysLeft < 0) return 'expirado';
+  if (daysLeft <= 30) return 'expirar';
+  return 'activo';
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('es-MX', { year:'numeric', month:'short', day:'numeric' });
+}
+
+// ─── RENDER TABLA ─────────────────────────────────────────────────────────────
 function renderTable() {
   const body = document.getElementById('table-body');
+
   const filtered = USERS.filter(u => {
-    const matchSearch = !currentSearch || 
-      u.name.toLowerCase().includes(currentSearch) || 
-      u.email.toLowerCase().includes(currentSearch) ||
-      u.area.toLowerCase().includes(currentSearch);
-    const matchFilter = currentFilter === 'todos' || u.status === currentFilter;
+    const matchSearch = !currentSearch ||
+      u.name.toLowerCase().includes(currentSearch) ||
+      u.mail.toLowerCase().includes(currentSearch) ||
+      u.dept.toLowerCase().includes(currentSearch);
+
+    const cert = latestCert(u.id);
+    const status = certStatus(cert);
+    const matchFilter =
+      currentFilter === 'todos'   ? true :
+      currentFilter === 'activo'  ? status === 'activo' :
+      currentFilter === 'revocado'? status === 'revocado' :
+      currentFilter === 'expirar' ? status === 'expirar' : true;
+
     return matchSearch && matchFilter;
   });
 
-  body.innerHTML = filtered.map(u => {
-    const dotClass = u.status === 'activo' ? 'dot-green' : u.status === 'expirar' ? 'dot-amber' : 'dot-red';
-    const certLabel = u.status === 'activo' ? '<span class="cert-label active">Activo</span>' : u.status === 'expirar' ? '<span class="cert-label warn">Por expirar</span>' : '<span class="cert-label revoked">Revocado</span>';
-    const expClass = u.status === 'expirar' ? 'warn' : '';
-    const disabledRevoke = u.status === 'revocado' ? 'disabled' : '';
+  if (filtered.length === 0) {
+    body.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-hint);font-size:13px">Sin resultados</td></tr>`;
+    return;
+  }
 
-    return `<tr data-id="${u.id}">
+  body.innerHTML = filtered.map(u => {
+    const cert    = latestCert(u.id);
+    const status  = certStatus(cert);
+    const pal     = palette(u.id);
+    const ini     = initials(u.name);
+
+    // Nivel — viene del cert (lvl) o sin cert
+    const lvlKey  = cert ? cert.lvl : null;
+    const lvlMeta = LEVEL_META[lvlKey] || { num: '?', label: 'Sin nivel', cls: 'level-4' };
+
+    const dotClass = status === 'activo' ? 'dot-green' : status === 'expirar' ? 'dot-amber' : 'dot-red';
+    const certLabel =
+      status === 'activo'   ? '<span class="cert-label active">Activo</span>'       :
+      status === 'expirar'  ? '<span class="cert-label warn">Por expirar</span>'    :
+      status === 'revocado' ? '<span class="cert-label revoked">Revocado</span>'    :
+      status === 'expirado' ? '<span class="cert-label revoked">Expirado</span>'    :
+                              '<span class="cert-label" style="color:var(--text-hint)">Sin cert.</span>';
+
+    const expDate  = cert ? fmtDate(cert.not_after) : '—';
+    const expClass = status === 'expirar' ? 'warn' : '';
+    const certId   = cert ? cert.id : '—';
+    const disabledRevoke = (!cert || cert.revocated) ? 'disabled' : '';
+
+    return `<tr data-uid="${u.id}">
       <td>
         <div class="user-cell">
-          <div class="avatar-circle" style="background:${u.color};color:${u.textColor}">${u.initials}</div>
+          <div class="avatar-circle" style="background:${pal.bg};color:${pal.fg}">${ini}</div>
           <div>
             <div class="user-name">${u.name}</div>
-            <div class="user-email">${u.email}</div>
+            <div class="user-email">${u.mail}</div>
           </div>
         </div>
       </td>
-      <td style="color:var(--text-secondary);font-size:13px">${u.area}</td>
-      <td><span class="level-badge ${levelClass[u.level]}">N${u.level} · ${u.levelLabel}</span></td>
-      <td><div class="perms-list">${u.perms.map(p => `<span class="perm-pill">${p}</span>`).join('')}</div></td>
+      <td style="color:var(--text-secondary);font-size:13px">${u.dept}</td>
+      <td><span class="level-badge ${lvlMeta.cls}">N${lvlMeta.num} · ${lvlMeta.label}</span></td>
+      <td><span style="font-size:12px;color:var(--text-secondary)">${fmtDate(u.joined)}</span></td>
       <td><div class="cert-cell"><div class="status-dot ${dotClass}"></div>${certLabel}</div></td>
-      <td><span class="exp-date ${expClass}">${u.expires}</span></td>
-      <td><span style="font-family:var(--font-mono);font-size:11.5px;color:var(--text-hint)">${u.serial}</span></td>
+      <td><span class="exp-date ${expClass}">${expDate}</span></td>
+      <td><span style="font-family:var(--font-mono);font-size:11.5px;color:var(--text-hint)">${certId}</span></td>
       <td>
         <div class="action-cell">
-          <button class="icon-btn" title="Ver certificado" onclick="showCert(${u.id})">
+          <button class="icon-btn" title="Ver certificado" onclick="showCert('${u.id}')">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M8 7v3.5M8 5.5v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
           </button>
-          <button class="icon-btn danger" title="Revocar certificado" ${disabledRevoke} onclick="revokeUser(${u.id})">
+          <button class="icon-btn danger" title="Revocar certificado" ${disabledRevoke} onclick="revokeUser('${u.id}')">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
           </button>
-          <button class="icon-btn" title="Editar permisos" onclick="showToast('Editar permisos: próximamente','')">
+          <button class="icon-btn" title="Nueva CSR" onclick="showToast('Flujo de CSR: próximamente','')">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M11 3l2 2-7 7H4v-2l7-7z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -933,6 +1085,7 @@ function renderTable() {
   }).join('');
 }
 
+// ─── FILTROS ──────────────────────────────────────────────────────────────────
 function filterTable(val) {
   currentSearch = val.toLowerCase();
   renderTable();
@@ -950,72 +1103,157 @@ function setNav(el) {
   el.classList.add('active');
 }
 
-function openModal(type) {
-  document.getElementById(`overlay-${type}`).classList.add('open');
-}
+// ─── MODALES ──────────────────────────────────────────────────────────────────
+function openModal(type) { document.getElementById(`overlay-${type}`).classList.add('open'); }
+function closeModal(type) { document.getElementById(`overlay-${type}`).classList.remove('open'); }
+function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id.replace('overlay-','')); }
 
-function closeModal(type) {
-  document.getElementById(`overlay-${type}`).classList.remove('open');
-}
+// ─── VER CERTIFICADO ──────────────────────────────────────────────────────────
+function showCert(uid) {
+  const u    = USERS.find(x => x.id === uid);
+  const cert = latestCert(uid);
+  if (!u) return;
 
-function closeModalOutside(e, id) {
-  if (e.target.id === id) closeModal(id.replace('overlay-',''));
-}
+  currentCertUser = { user: u, cert };
 
-function showCert(id) {
-  const u = USERS.find(x => x.id === id);
-  currentCertUser = u;
   document.getElementById('cert-modal-name').textContent = `Certificado — ${u.name}`;
-  const fields = [
-    ['Número de serie', u.serial],
-    ['Sujeto (CN)', u.name],
-    ['Organización', 'Casa Monarca A.C.'],
-    ['País / Estado', 'MX / Nuevo León'],
-    ['Algoritmo de firma', 'SHA256withRSA'],
-    ['Tamaño de clave', '4096 bits'],
-    ['Válido desde', '2024-12-01'],
-    ['Válido hasta', u.expires],
-    ['Emisor (CA)', 'Casa Monarca Root CA'],
-    ['Estado', u.status === 'activo' ? 'Válido' : u.status === 'expirar' ? 'Próximo a expirar' : 'Revocado (en CRL)'],
+
+  const lvlMeta = cert ? (LEVEL_META[cert.lvl] || {}) : {};
+  const status  = certStatus(cert);
+
+  const fields = cert ? [
+    ['ID de certificado',  cert.id],
+    ['Usuario (uid)',      u.id],
+    ['Nombre (CN)',        u.name],
+    ['Correo',            u.mail],
+    ['Departamento',      u.dept],
+    ['Nivel de acceso',   `${lvlMeta.label || cert.lvl}`],
+    ['Organización',      'Casa Monarca A.C.'],
+    ['País / Estado',     'MX / Nuevo León'],
+    ['Algoritmo de firma','SHA256withRSA'],
+    ['Tamaño de clave',   '4096 bits'],
+    ['Válido desde',      fmtDate(cert.not_before)],
+    ['Válido hasta',      fmtDate(cert.not_after)],
+    ['Emisor (CA)',       'Casa Monarca Root CA'],
+    ['Estado',            status === 'activo' ? 'Válido' : status === 'expirar' ? 'Próximo a expirar' : 'Revocado (en CRL)'],
+    ['PEM raw',           cert.raw || '(pendiente de generación)'],
+  ] : [
+    ['Usuario (uid)',  u.id],
+    ['Nombre',        u.name],
+    ['Correo',        u.mail],
+    ['Departamento',  u.dept],
+    ['Certificado',   'Sin certificado emitido'],
   ];
-  document.getElementById('cert-fields').innerHTML = fields.map(([l,v]) =>
-    `<div class="cert-field"><span class="cert-field-label">${l}</span><span class="cert-field-val">${v}</span></div>`
+
+  document.getElementById('cert-fields').innerHTML = fields.map(([l, v]) =>
+    `<div class="cert-field">
+      <span class="cert-field-label">${l}</span>
+      <span class="cert-field-val" style="${l==='PEM raw'?'font-size:10px;word-break:break-all;max-width:260px':''}">${v}</span>
+    </div>`
   ).join('');
+
   openModal('cert');
 }
 
-function revokeUser(id) {
-  const u = USERS.find(x => x.id === id);
-  if (!u || u.status === 'revocado') return;
-  if (!confirm(`¿Revocar el certificado de ${u.name}? Esta acción lo añadirá a la Lista CRL.`)) return;
-  u.status = 'revocado';
-  u.expires = '—';
-  u.perms = ['—'];
+// ─── REVOCAR ──────────────────────────────────────────────────────────────────
+// NOTA: el backend aún no tiene endpoint DELETE /certs o PATCH /certs/{id}/revoke
+// Por ahora marcamos localmente y mostramos el flujo correcto.
+// Cuando el backend lo implemente, reemplazar el bloque marcado con "// TODO".
+async function revokeUser(uid) {
+  const u    = USERS.find(x => x.id === uid);
+  const cert = latestCert(uid);
+  if (!u || !cert || cert.revocated) return;
+  if (!confirm(`¿Revocar el certificado de ${u.name}?\nEsta acción lo añadirá a la Lista CRL.`)) return;
+
+  // TODO: await apiFetch(`/certs/${cert.id}/revoke`, { method: 'POST' });
+  // Por ahora mutamos localmente hasta que el backend exponga ese endpoint
+  cert.revocated = true;
+
+  updateStats();
   renderTable();
   showToast(`Certificado de ${u.name} revocado y añadido a CRL`, 'danger');
 }
 
-function revokeFromModal() {
+async function revokeFromModal() {
   if (!currentCertUser) return;
   closeModal('cert');
-  setTimeout(() => revokeUser(currentCertUser.id), 150);
+  setTimeout(() => revokeUser(currentCertUser.user.id), 150);
 }
 
-function createUser() {
+// ─── CREAR USUARIO ────────────────────────────────────────────────────────────
+// Mapea el formulario a los campos de User (api_intf.py):
+//   id, name, dept, mail, joined
+async function createUser() {
+  const name  = document.getElementById('form-name').value.trim();
+  const mail  = document.getElementById('form-mail').value.trim();
+  const dept  = document.getElementById('form-dept').value;
+  const lvl   = document.getElementById('form-level').value;   // "admin"|"coordinador"|etc.
+  const weeks = parseInt(document.getElementById('form-validity').value);
+
+  if (!name || !mail) {
+    showToast('Completa nombre y correo', 'danger');
+    return;
+  }
+
+  // 1. Crear usuario  →  POST /users
+  const uid = crypto.randomUUID ? crypto.randomUUID().slice(0,8) : String(Date.now());
+  const now  = new Date().toISOString();
+  const userPayload = { id: uid, name, dept, mail, joined: now };
+
+  const userReply = await apiFetch('/users', {
+    method: 'POST',
+    body: JSON.stringify(userPayload),
+  });
+
+  if (!userReply || userReply.status !== 'success') {
+    showToast(userReply?.result || 'Error al crear usuario', 'danger');
+    return;
+  }
+
+  // 2. Crear certificado  →  POST /certs
+  const certId    = `CM-${new Date().getFullYear()}-${Math.floor(Math.random()*9000+1000)}`;
+  const notBefore = new Date();
+  const notAfter  = new Date(notBefore.getTime() + weeks * 7 * 86400000);
+
+  const certPayload = {
+    id:         certId,
+    uid:        uid,
+    lvl:        lvl,
+    not_before: notBefore.toISOString(),
+    not_after:  notAfter.toISOString(),
+    revocated:  false,
+    raw:        '',   // el backend lo llenará con el PEM real
+  };
+
+  const certReply = await apiFetch('/certs', {
+    method: 'POST',
+    body: JSON.stringify(certPayload),
+  });
+
   closeModal('new');
-  showToast('Certificado generado y enviado al usuario', 'success');
+
+  if (!certReply || certReply.status !== 'success') {
+    showToast('Usuario creado pero error al emitir certificado', 'danger');
+  } else {
+    showToast(`Usuario ${name} creado · Cert ${certId} emitido`, 'success');
+  }
+
+  // 3. Recargar desde el backend para reflejar estado real
+  await loadAll();
 }
 
+// ─── TOAST ────────────────────────────────────────────────────────────────────
 function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = `toast ${type}`;
   void t.offsetWidth;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  setTimeout(() => t.classList.remove('show'), 3200);
 }
 
-renderTable();
+// ─── INICIO ───────────────────────────────────────────────────────────────────
+loadAll();
 </script>
 </body>
 </html>
