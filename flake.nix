@@ -14,6 +14,7 @@
         pythonEnv = python.withPackages (ps: with ps; [
           flask
           flask-restx
+          apispec
           cryptography
         ]);
         launch-backend = pkgs.stdenv.mkDerivation {
