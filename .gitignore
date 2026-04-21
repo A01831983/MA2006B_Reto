@@ -1,6 +1,7 @@
 *.bin
 *.obj
 *.lock
+*.pyc
 
 # Prevent (possibly private) keys from being leaked
 *.pem
