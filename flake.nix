@@ -12,35 +12,31 @@
         pkgs = import nixpkgs { inherit system; };
         python = pkgs.python36;
         pythonEnv = python.withPackages (ps: with ps; [
+          # Backend API
           flask
           flask-restx
-          apispec
+          flask-swagger-ui
+
+          # Backend Database
+          tinydb
+
+          # Cryptography
           cryptography
+          bcrypt
         ]);
-        launch-backend = pkgs.stdenv.mkDerivation {
-          pname = "launch-backend";
-          version = "0.1.0";
-
-          src = ./src/backend;
-
-          buildInputs = [ pythonEnv ];
-
-          installPhase = ''
-            mkdir -p $out/bin
-            cp main.py $out/bin/launch-backend
-            chmod +x $out/bin/launch-backend
-            patchShebangs $out/bin/launch-backend
-          '';
-        };
       in {
-        packages.default = launch-backend;
-
-        apps.default = flake-utils.lib.mkApp {
-          drv = launch-backend;
+        apps.default = {
+          type = "app";
+          program = toString (pkgs.writeShellScript "run" ''
+            FLASK_APP=src/backend/main.py ${pythonEnv}/bin/flask run --port 8000
+          '');
         };
 
         devShells.default = pkgs.mkShell {
           buildInputs = [ pythonEnv ];
+          shellHook = ''
+            export PS1="[dev] \u@\h:\w$ "
+          '';
         };
       }
     );
