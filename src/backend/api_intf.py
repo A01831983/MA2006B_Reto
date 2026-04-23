@@ -143,8 +143,8 @@ def get_own_certs():
 
 # Certificate Signing Requests
 dummy_csrss = [
-    CSRStatus(id="199", uid="3", lvl=Levels.Captura, raw=""),
-    CSRStatus(id="200", uid="7", lvl=Levels.Coordinador, raw="")
+    CSRStatus(id="199", uid="3", lvl=Levels.Captura),
+    CSRStatus(id="200", uid="7", lvl=Levels.Coordinador)
 ]
 def list_csrs(filters: CSRStatusFilter = Depends()):
     filter_ = lambda r: \

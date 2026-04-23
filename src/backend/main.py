@@ -5,10 +5,14 @@ Runs the API backend.
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 import api_intf as ai
 
 a = FastAPI()
+
+a.add_middleware(CORSMiddleware, allow_origins=["*"],
+                 allow_methods=["*"], allow_headers=["*"])
 
 # Users (identities)
 list_users = a.get("/users", response_model=ai.UserList)(ai.list_users)
