@@ -5,3 +5,8 @@
 
 # Prevent (possibly private) keys from being leaked
 *.pem
+
+# Exclude python dist/ directory
+dist/*
+
+*/*.egg-info/*
