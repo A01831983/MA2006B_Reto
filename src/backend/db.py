@@ -11,6 +11,9 @@ import random
 from datetime import datetime, date
 
 import tinydb
+from cryptography import x509
+from cryptography.x509.oid import NameOID
+from cryptography.hazmat.primitives import serialization
 
 
 db = None
@@ -18,7 +21,7 @@ users = None
 certs = None
 
 def init(filename):
-    global db, users, certs
+    global db, users, certs, cert_data
 
     ldb = tinydb.TinyDB(filename)
     if not _validate_db(ldb):
@@ -53,11 +56,13 @@ def _chk_usr(u: dict):
             "mail" in keys and "joined" in keys):
         raise ValueError("Not a user dict")
 
-def _ser_usr(u: dict):
-    _chk_usr(u)
+def _ser_usr(u: dict, check=True):
+    if check: _chk_usr(u)
 
     ret = u.copy()
-    ret["joined"] = _ser_date(u["joined"])
+
+    if check or (not check and "joined" in u.keys()):
+        ret["joined"] = _ser_date(u["joined"])
 
     return ret
 
@@ -103,6 +108,15 @@ def add_user(name: str, dept: str, lvl: str, mail: str, joined: date):
 
     return uid
 
+def change_users(uid: str, new: dict):
+    if not set(new.keys()).issubset({"name", "dept", "lvl", "mail", "joined"}):
+        return "can only update the fields 'name', 'dept', 'lvl', 'mail', and"\
+                + " 'joined'"
+
+    update = _ser_usr(new, check=False)
+
+    users.update(update, tinydb.Query().id.search(uid))
+
 def _chk_crt(c: dict):
     keys = c.keys()
     if not ("id" in keys and "uid" in keys and "not_before" in keys and
@@ -111,19 +125,27 @@ def _chk_crt(c: dict):
 
 def _ser_crt(c: dict):
     _chk_crt(c)
+    if not "cert" in c.keys():
+        raise ValueError("Not a certificate dict (missing 'cert' entry)")
 
     ret = c.copy()
+    ret["raw"] = c["cert"].public_bytes(serialization.Encoding.PEM).decode()
     ret["not_before"] = _ser_date(ret["not_before"])
     ret["not_after"] = _ser_date(ret["not_after"])
+    del ret["cert"]
 
     return ret
 
 def _des_crt(c: dict):
     _chk_crt(c)
+    if not "raw" in c.keys():
+        raise ValueError("Not a certificate dict (missing 'raw') entry")
 
     ret = c.copy()
     ret["not_before"] = _des_date(c["not_before"])
     ret["not_after"] = _des_date(c["not_after"])
+    ret["cert"] = x509.load_pem_x509_certificate(c["raw"].encode())
+    del ret["raw"]
 
     return ret
 
@@ -135,7 +157,7 @@ def list_certs(cid: str = "", uid: str = "", valid: bool = None,
     # Filter by cid, uid, revoked
     ret = map(_des_crt, certs.search(
         Crt.id.search(cid) & Crt.uid.search(uid) if revoked is None else \
-        Crt.id.search(cid) & Crt.uid.search(uid) & Crt.revoked == revoked
+        Crt.id.search(cid) & Crt.uid.search(uid) & (Crt.revoked == revoked)
     ))
 
     # Filter by valid
@@ -158,56 +180,16 @@ def list_certs(cid: str = "", uid: str = "", valid: bool = None,
 
     return list(filter(date_filter, ret))
 
-def add_cert(uid: str, not_before: date, not_after: date):
+def add_cert(uid: str, cert: x509.Certificate):
     cid = random.randint(0, 2**31-1)
     while len(list_certs(cid=str(cid))) != 0:
         cid = random.randint(0, 2**31-1)
+    cid = str(cid)
 
-    c = {"id": cid, "uid": str(uid), "not_before": not_before,
-         "not_after": not_after, "revoked": False}
+    certinfo = {
+        "id": cid, "uid": uid, "not_after": cert.not_valid_after,
+        "not_before": cert.not_valid_before, "cert": cert, "revoked": False
+    }
+    certs.insert(_ser_crt(certinfo))
 
-    certs.insert(_ser_crt(c))
-
-    return str(cid)
-
-if __name__ == "__main__":
-    if not init("examples/dummy.json"):
-        raise ValueError("Database file invalid format")
-
-    if len(list_users()) == 0:
-        dummy_users = [
-            {"name": "Max Mustermann", "dept": "TI", "lvl": "admin",
-             "mail": "admin@casamonarca.mx", "joined": date(2026, 3, 10)},
-            {"name": "María López", "dept": "Legal", "lvl": "coordinador",
-             "mail": "m.lopez@casamonarca.mx", "joined": date(2024, 1, 1)},
-            {"name": "José Ramírez", "dept": "Humanitaria", "lvl": "operativo",
-             "mail": "j.ramirez@casamonarca.mx", "joined": date(2024, 8, 15)},
-            {"name": "Ana González", "dept": "Salud", "lvl": "captura",
-             "mail": "a.gonzalez@casamonarca.mx", "joined": date(2024, 10, 13)},
-            {"name": "Carlos Vega", "dept": "Legal", "lvl": "operativo",
-             "mail": "c.vega@casamonarca.mx", "joined": date(2020, 6, 1)},
-            {"name": "Lucía Morales", "dept": "Educativa", "lvl": "coordinador",
-             "mail": "l.morales@casamonarca.mx", "joined": date(2019, 12, 1)},
-            {"name": "Roberto Salas", "dept": "Humanitaria", "lvl": "captura",
-             "mail": "r.salas@casamonarca.mx", "joined": date(2025, 12, 24)},
-            {"name": "Diana Fuentes", "dept": "Salud", "lvl": "operativo",
-             "mail": "d.fuentes@casamonarca.mx", "joined": date(2026, 1, 1)}
-        ]
-
-        list(map(lambda u: add_user(**u), dummy_users))
-
-        if len(list_certs()) != 0: exit()
-
-        get_uid = lambda name: list_users(name=name)[0]["id"]
-        
-        today = date.today()
-        begin = date(2024, 1, 1)
-        end = date(2025, 6, 15)
-        dummy_certs = [
-            {"uid": get_uid("Max"), "not_before": begin, "not_after": end},
-            {"uid": get_uid("Max"), "not_before": end, "not_after": today},
-            {"uid": get_uid("María"), "not_before": begin, "not_after": end},
-            {"uid": get_uid("Ramírez"), "not_before": begin, "not_after": end}
-        ]
-
-        list(map(lambda c: add_cert(**c), dummy_certs))
+    return cid
