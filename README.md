@@ -12,7 +12,7 @@
 
 
 ## Backend
-### Instalación de las bibliotécas de Python necesarias
+### Instalación de las bibliotecas de Python necesarias
 Ejecuta el comando `pip install -r requirements.txt` en la terminal.
 
 ### Ejecución
