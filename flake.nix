@@ -14,12 +14,13 @@
         pkgs-21-05 = import nixpkgs-21-05 { inherit system; };
         python = pkgs-21-05.python36;
         pythonEnv = python.withPackages (ps: with ps; [
-          # Backend API
+          # API
           flask
           flask-restx
           flask-swagger-ui
+          flask-cors
 
-          # Backend Database
+          # Database
           tinydb
 
           # Cryptography

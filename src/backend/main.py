@@ -9,6 +9,7 @@ __author__ = "Henning Arvid Ladewig"
 from flask import Flask
 from flask_restx import Api, Resource, fields
 from flask_swagger_ui import get_swaggerui_blueprint
+from flask_cors import CORS
 
 import api_intf as ai
 import ccore
@@ -17,6 +18,8 @@ import ccore
 ccore.init("examples/dummy_server_key.pem")
 
 app = Flask(__name__)
+CORS(app)
+
 api = Api(app, version="1.0", title="Gestor-API", doc=False,
     description="Gestor API",
 )
