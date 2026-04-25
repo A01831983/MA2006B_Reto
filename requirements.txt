@@ -1,0 +1,6 @@
+flask==1.1.2
+flask-restx==0.3.0
+flask-swagger-ui==3.36.0
+tinydb==4.4.0
+cryptography==3.4.7
+bcrypt==3.2.0
