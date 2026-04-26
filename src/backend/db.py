@@ -96,6 +96,10 @@ def list_users(uid: str = "", name: str = "", dept: str = "", lvl: str = "",
     return list(filter(join_filter, ret))
 
 def add_user(name: str, dept: str, lvl: str, mail: str, joined: date):
+    # Enforce email address uniqueness
+    if len(list_users(mail=mail)) != 0:
+        raise ValueError("email address must be unique")
+
     uid = random.randint(0, 2**31-1)
     while len(list_users(uid=str(uid))) != 0:
         uid = random.randint(0, 2**31-1)
@@ -112,6 +116,10 @@ def change_users(uid: str, new: dict):
     if not set(new.keys()).issubset({"name", "dept", "lvl", "mail", "joined"}):
         return "can only update the fields 'name', 'dept', 'lvl', 'mail', and"\
                 + " 'joined'"
+
+    if "mail" in new.keys():
+        if len(list_users(mail=new["mail"])) != 0:
+            raise ValueError("email address must be unique")
 
     update = _ser_usr(new, check=False)
 

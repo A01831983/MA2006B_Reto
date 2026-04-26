@@ -192,7 +192,7 @@ def register(api, db_filename):
             try:
                 ret = db.add_user(**api.payload)
             except Exception as e:
-                api.abort(400, "Error adding user to database: {e}")
+                api.abort(400, f"Error adding user to database: {e}")
             
             return {"id": ret}
 
@@ -215,7 +215,10 @@ def register(api, db_filename):
             except ValueError:
                 api.abort(400, _des_date_err("joined", api.payload["joined"]))
 
-            ret = db.change_users(args["uid"], api.payload)
+            try:
+                ret = db.change_users(args["uid"], api.payload)
+            except Exception as e:
+                api.abort(400, f"Error adding user to database: {e}")
 
             if ret is not None:
                 api.abort(400, ret)
