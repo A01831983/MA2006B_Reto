@@ -13,6 +13,7 @@
 
 ## Backend
 ### Instalación de las bibliotecas de Python necesarias
+Se recomienda usar Python 3.6.13 porque es la versión utilizada para las pruebas.
 Ejecuta el comando `pip install -r requirements.txt` en la terminal.
 
 ### Ejecución
