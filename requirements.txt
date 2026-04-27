@@ -5,3 +5,4 @@ flask-cors==3.0.10
 tinydb==4.4.0
 cryptography==3.4.7
 bcrypt==3.2.0
+validators==0.18.2

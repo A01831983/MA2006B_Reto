@@ -12,6 +12,7 @@ from datetime import date, datetime
 from flask import jsonify
 from flask_restx import Api, Resource, fields, reqparse
 from cryptography.hazmat.primitives import serialization
+import validators
 
 import ccore
 import db
@@ -203,6 +204,10 @@ def register(api, db_filename):
         @api.marshal_with(UserCreateReply_m)
         @api.doc(description="Create a new user")
         def post(self):
+            if "mail" in api.payload.keys():
+                if not validators.email(api.payload["mail"]):
+                    api.abort(400, "'mail' must be a valid email")
+
             try:
                 if "joined" in api.payload.keys():
                     api.payload["joined"] = _des_date(api.payload["joined"])
@@ -227,6 +232,11 @@ def register(api, db_filename):
             usrs = db.list_users(uid=args["uid"])
             if len(usrs) != 1:
                 api.abort(400, _not_unique_err("uid", "user", len(usrs)))
+
+            if "mail" in api.payload.keys():
+                if not validators.email(api.payload["mail"]):
+                    api.abort(400, "'mail' must be a valid email")
+
             try:
                 if "joined" in api.payload.keys():
                     api.payload["joined"] = _des_date(api.payload["joined"])

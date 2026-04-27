@@ -19,6 +19,7 @@
           flask-restx
           flask-swagger-ui
           flask-cors
+          validators
 
           # Database
           tinydb
