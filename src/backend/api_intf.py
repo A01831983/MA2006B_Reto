@@ -103,6 +103,8 @@ def register(api, db_filename):
     CertCreate_m = api.model("CertCreate", certcreate_model)
 
     certcreatereply_model = {
+        "id": StrField("The id of the freshly generated certificate",
+                       required=True),
         "raw": StrField("Encrypted private key (PEM)", required=True)
     }
     CertCreateReply_m = api.model("CertCreateReply", certcreatereply_model)
@@ -224,9 +226,7 @@ def register(api, db_filename):
 
             usrs = db.list_users(uid=args["uid"])
             if len(usrs) != 1:
-                api.abort(400, "uid must match exactly one user's id " + \
-                        f"(obtained {len(usrs)} matches)")
-
+                api.abort(400, _not_unique_err("uid", "user", len(usrs)))
             try:
                 if "joined" in api.payload.keys():
                     api.payload["joined"] = _des_date(api.payload["joined"])
@@ -250,9 +250,7 @@ def register(api, db_filename):
 
             usrs = db.list_users(uid=args["uid"])
             if len(usrs) != 1:
-                api.abort(400, "uid must match exactly one user's id " + \
-                        f"(obtained {len(usrs)} matches)")
-
+                api.abort(400, _not_unique_err("uid", "user", len(usrs)))
             try:
                 ret = db.delete_users(args["uid"])
             except Exception as e:
@@ -344,7 +342,8 @@ def register(api, db_filename):
             uid_err = "uid must exactly match the ID of one user"
 
             usrs = db.list_users(uid=args["uid"])
-            if len(usrs) != 1: api.abort(400, uid_err)
+            if len(usrs) != 1:
+                api.abort(400, _not_unique_err("uid", "user", len(usrs)))
 
             usr = usrs[0]
             if usr["id"] != args["uid"]: api.abort(400, uid_err)
@@ -366,11 +365,11 @@ def register(api, db_filename):
                 api.error(400, f"Error creating certificate: {e}")
 
             try:
-                db.add_cert(usr["id"], cert)
+                cid = db.add_cert(usr["id"], cert)
             except Exception as e:
                 api.abort(400, f"Error adding certificate to database: {e}")
 
-            return {"raw": key.decode()}
+            return {"id": str(cid), "raw": key.decode()}
 
     @api.route("/certs/<string:cid>")
     @api.doc(description="Retrieve raw PEM data of one specific certificate")
@@ -382,8 +381,7 @@ def register(api, db_filename):
             
             if len(certs) != 1:
                 api.abort(400,
-                          "cid match must match exactly one certificate's id" \
-                                  + f" (obtained {len(certs)} matches)")
+                          _not_unique_err("cid", "certificate", len(certs)))
 
             cert = certs[0]["cert"]
             
@@ -398,6 +396,10 @@ def StrField(desc, **kwargs):
 
 def EnumField(enumcls, **kwargs):
     return fields.String(enum=[e.value for e in enumcls], **kwargs)
+
+def _not_unique_err(field_name, object_name, matches):
+    return f"{field_name} must match exactly one {object_name}'s id " + \
+            f"(obtained {matches} matches)"
 
 def _des_bool(d):
     return d == "true" if d is not None else d
