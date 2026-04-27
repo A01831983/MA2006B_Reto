@@ -125,6 +125,9 @@ def change_users(uid: str, new: dict):
 
     users.update(update, tinydb.Query().id.search(uid))
 
+def delete_users(uid: str):
+    users.remove(tinydb.Query().id.search(uid))
+
 def _chk_crt(c: dict):
     keys = c.keys()
     if not ("id" in keys and "uid" in keys and "not_before" in keys and

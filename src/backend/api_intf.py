@@ -197,12 +197,12 @@ def register(api, db_filename):
             return {"id": ret}
 
         @api.doc(params={
-            "uid": {"description": "The id of the user which to modify",
+            "uid": {"description": "The id of the user which to modify (must match uniquely)",
                     "required": True, "type": str}
         }, description="Change the data of a specific user")
         @api.expect(UserModify_m)
         def patch(self):
-            args = uid_p.parse_args(); print(args); print(api.payload)
+            args = uid_p.parse_args()
 
             usrs = db.list_users(uid=args["uid"])
             if len(usrs) != 1:
@@ -222,6 +222,23 @@ def register(api, db_filename):
 
             if ret is not None:
                 api.abort(400, ret)
+
+        @api.doc(params={
+            "uid": {"description": "The id of the user which to remove (must match uniquely)",
+                    "required": True, "type": str}
+        }, description="Remove a specific user")
+        def delete(self):
+            args = uid_p.parse_args()
+
+            usrs = db.list_users(uid=args["uid"])
+            if len(usrs) != 1:
+                api.abort(400, "uid must match exactly one user's id " + \
+                        f"(obtained {len(usrs)} matches)")
+
+            try:
+                ret = db.delete_users(args["uid"])
+            except Exception as e:
+                api.abort(400, f"Error removing user from database: {e}")
 
     @api.route("/certs")
     @api.doc(description="Certificate querying and creation")
@@ -261,7 +278,7 @@ def register(api, db_filename):
                 api.abort(400, _des_date_err("not_before", args["not_before"]))
             
             try:
-                args["not_after"] = _des_date(args["not_after"]); print(args)
+                args["not_after"] = _des_date(args["not_after"])
             except ValueError:
                 api.abort(400, _des_date_err("not_after", args["not_after"]))
             
