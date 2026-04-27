@@ -20,10 +20,6 @@ import db
 DATE_FORMAT = "%Y-%m-%d"
 
 # Enums
-class StatusEnum(Enum):
-    SUCCESS = "success"
-    FAILURE = "failure"
-
 class LevelEnum(Enum):
     Administrador = "admin"
     Coordinador = "coordinador"
