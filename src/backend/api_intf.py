@@ -20,12 +20,22 @@ import db
 DATE_FORMAT = "%Y-%m-%d"
 
 # Enums
+class DeptEnum(Enum):
+    Humanitaria = "Humanitaria"
+    PsicoSocial = "PsicoSocial"
+    Legal = "Legal"
+    Comunicacion = "Comunicación"
+    Almacen = "Alamcén"
+    TI = "TI"
+depts = tuple(d.value for d in DeptEnum)
+
 class LevelEnum(Enum):
     Administrador = "admin"
     Coordinador = "coordinador"
     Operativo = "operativo"
     Captura = "captura"
     Voluntario = "captura"
+lvls = tuple(l.value for l in LevelEnum)
 
 
 def register(api, db_filename):
@@ -35,7 +45,9 @@ def register(api, db_filename):
     user_model = {
         "id": StrField("Permanent ID of the user", required=True),
         "name": StrField("Full legal name of the user", required=True),
-        "dept": StrField("Department the user is working in", required=True),
+        "dept": EnumField(DeptEnum,
+                          description="Department the user is working in",
+                          required=True),
         "lvl": EnumField(LevelEnum, description="Access level of the user",
                          required=True,
                          default=LevelEnum.Voluntario.value),
@@ -57,7 +69,9 @@ def register(api, db_filename):
 
     usermodify_model = {
         "name": StrField("Full legal name of the user", required=False),
-        "dept": StrField("Department the user is working in", required=False),
+        "dept": EnumField(DeptEnum,
+                          description="Department the user is working in",
+                          required=False),
         "lvl": EnumField(LevelEnum, description="Access level of the user",
                          required=False,
                          default=LevelEnum.Voluntario.value),
@@ -149,19 +163,27 @@ def register(api, db_filename):
             "name": {"description": "Restrict by name", "required": False,
                      "type": str},
             "dept": {"description": "Restrict by department", "required": False,
-                     "type": str},
+                     "type": str, "enum": depts},
             "lvl": {"description": "Restrict by access level",
-                    "required": False, "type": str},
+                    "required": False, "type": str, "enum": lvls},
             "mail": {"description": "Restrict by email address",
                      "required": False, "type": str},
             "joined_before": {"description": "Restrict by join date (YYYY-MM-DD)",
-                              "required": False, "type": str},
+                              "required": False, "type": str, "format": "date"},
             "joined_after": {"description": "Restrict by join date (YYYY-MM-DD)",
-                             "required": False, "type": str}
+                             "required": False, "type": str, "format": "date"}
         }, description="Query registered users")
         @api.marshal_list_with(User_m)
         def get(self):
             args = user_filter_p.parse_args()
+
+            if "dept" in args.keys():
+                if args["dept"] != "" and args["dept"] not in depts:
+                    api.abort(400, _chk_dept_err(args["dept"]))
+
+            if "lvl" in args.keys():
+                if args["lvl"] != "" and args["lvl"] not in lvls:
+                    api.abort(400, _chk_lvl_err(args["lvl"]))
 
             try:
                 args["joined_before"] = _des_date(args["joined_before"])
@@ -248,10 +270,10 @@ def register(api, db_filename):
                       "required": False, "type": bool},
             "not_before": {
                 "description": "Restrict by certificate validity period (YYYY-MM-DD)",
-                "required": False, "type": str},
+                "required": False, "type": str, "format": "date"},
             "not_after": {
                 "description": "Restrict by certificate validity period (YYYY-MM-DD)",
-                "required": False, "type": str},
+                "required": False, "type": str, "format": "date"},
             "revoked": {"description": "Restrict by revocation status",
                         "required": False, "type": bool}
         }, description="Query registered certificates")
@@ -290,9 +312,9 @@ def register(api, db_filename):
                 "description": "The ID of the user which to issue a certificate for",
                 "required": True, "type": str},
             "not_before": {"description": "Validity period", "required": True,
-                           "type": str},
+                           "type": str, "format": "date"},
             "not_after": {"description": "Validity period", "required": True,
-                          "type": str}
+                          "type": str, "format": "date"}
         }, description="Create new certificate for a specific user")
         @api.expect(CertCreate_m)
         @api.marshal_with(CertCreateReply_m)
@@ -383,6 +405,16 @@ def _des_bool(d):
 def _des_bool_err(field_name, v):
     return f"Invalid format for '{field_name}': Shall be bool ('true'/'false')" \
             + f", instead received {v}"
+
+def _chk_dept_err(dept):
+    depts_str = "', '".join(depts)
+
+    return f"Department '{dept}' invalid; Must be one of '{depts_str}'"
+
+def _chk_lvl_err(lvl):
+    lvls_str = "', '".join(lvls)
+
+    return f"Access level '{lvl}' invalid; Must be one of '{lvls_str}'"
 
 def _des_date(d):
     return datetime.strptime(d, DATE_FORMAT).date() if d is not None else d
