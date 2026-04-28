@@ -1,4 +1,4 @@
-# Uso de álgebras modernas para seguridad y criptografía, Grupo 603, Equipo 2
+# Reto: Uso de álgebras modernas para seguridad y criptografía, Grupo 603, Equipo 2
 
 ## Integrantes
 | Nombre                            | Matrícula |
@@ -10,8 +10,15 @@
 | Ximena Montes Bautista            | A01737949 |
 | Henning Arvid Ladewig             | A01831983 |
 
+## Descripción breve
+Este proyecto es el reto del curso MA2006B durante FJ26 en Tec de Monterrey, Campus Monterrey.
+El objetivo es desarrollar un sistema de gestion de identidades para el Socio Formador, Casa Monarca.
 
-## Backend
+## Arquitectura
+Nuestra arquitectura involucra el servidor facilitando el backend en combinación con las funciones
+criptográficas, mientras que el frontend dar la interfaz del usuario.
+
+## Requisitos de instalación
 ### Instalación de las bibliotecas de Python necesarias
 Se recomienda usar Python 3.6.13 porque es la versión utilizada para las pruebas.
 Ejecuta el comando `pip install -r requirements.txt` en la terminal.
