@@ -63,7 +63,7 @@ cert = x509.CertificateBuilder().\
     serial_number(x509.random_serial_number()).\
     not_valid_before(datetime.datetime.now()).\
     not_valid_after(datetime.datetime.now() + datetime.timedelta(weeks=4)).\
-    sign(severkey, hashes.SHA256())
+    sign(serverkey, hashes.SHA256())
 
 # Save the certificate to a file
 with open(indir("dummy_cert.pem"), "wb") as f:
