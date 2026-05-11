@@ -274,7 +274,7 @@ def register(api, db_filename):
                     "required": False, "type": str},
             "uid": {"description": "Restrict by user ID", "required": False,
                     "type": str},
-            "valid": {"description": "Restrict to currently valid certificates",
+            "valid": {"description": "Restrict by certificate validity",
                       "required": False, "type": bool},
             "not_before": {
                 "description": "Restrict by certificate validity period (YYYY-MM-DD)",
