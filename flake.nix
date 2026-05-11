@@ -31,9 +31,7 @@
       in {
         apps.default = {
           type = "app";
-          program = toString (pkgs.writeShellScript "run" ''
-            FLASK_APP=src/backend/main.py ${pythonEnv}/bin/flask run --port 8000
-          '');
+          program = toString (pkgs.writeShellScript "run" "${pythonEnv}/bin/python run.py $@");
         };
 
         devShells.default = pkgs.mkShell {

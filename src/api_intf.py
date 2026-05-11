@@ -14,8 +14,8 @@ from flask_restx import Api, Resource, fields, reqparse
 from cryptography.hazmat.primitives import serialization
 import validators
 
-import ccore
-import db
+from . import ccore
+from . import db
 
 
 DATE_FORMAT = "%Y-%m-%d"
