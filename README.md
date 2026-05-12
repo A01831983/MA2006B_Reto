@@ -23,9 +23,17 @@ criptográficas, mientras que el frontend dar la interfaz del usuario.
 Se recomienda usar Python 3.6.13 porque es la versión utilizada para las pruebas.
 Ejecuta el comando `pip install -r requirements.txt` en la terminal.
 
-### Ejecución
-Para iniciar el backend, solo se tiene que ejecutar `python src/backend/main.py`.
+## Ejecución
+Para iniciar el backend, solo se tiene que ejecutar
+`python run.py --db <database file> --cert <certificate file> --key <private key file>`.
 Después, el backend está disponible en `http://localhost:8000`.
 
-### Interfaz para debugging
+### Generación de ejemplo
+Para generar datos de ejemplos con que se puede iniciar el servidor, ejecuta
+`python examples/create_dummy_data.py`.
+Entonces, entre otros, hay los archivos `examples/dummy.json` como banco de datos,
+`examples/srv_cert.pem` como certificado del servidor, y `examples/srv_key.pem` como clave
+privada del servidor.
+
+### Interfaz para debugging y documentación
 Hay una interfaz para debugging que también incluye documentación en `http://localhost:8000/docs`.
