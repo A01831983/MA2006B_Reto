@@ -2,6 +2,7 @@
 *.obj
 *.lock
 *.pyc
+*.swp
 
 # Prevent (possibly private) keys from being leaked
 *.pem
