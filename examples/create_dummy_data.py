@@ -75,7 +75,7 @@ def create_usr_x509(usr, num):
                            "Casa Monarca DUMMY TEST NOT REAL"),
         x509.NameAttribute(NameOID.GIVEN_NAME, usr["name"]),
         x509.NameAttribute(NameOID.EMAIL_ADDRESS, usr["mail"]),
-        x509.NameAttribute(NameOID.SERIAL_NUMBER, str(num)),
+        x509.NameAttribute(NameOID.SERIAL_NUMBER, num),
         x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, org_unit(usr))
     ])
 
@@ -93,39 +93,24 @@ sissuer = ssubject = x509.Name([
 ])
 scert, skey = create_ck(3072, "srv_key.pem", "srv_cert.pem", sissuer, ssubject)
 
-# Primary admin
-admin = {"name": "Max Mustermann", "dept": "TI", "lvl": "admin",
-         "mail": "admin@casamonarca.mx", "joined": date(2026, 3, 10)}
-aissuer = asubject = create_usr_x509(admin, 0)
-acert, akey = create_ck(2048, "admin_key.pem", "admin_cert.pem", aissuer,
-                        asubject)
-
-# Backup admin
-badmin = admin.copy()
-badmin["mail"] = "backup-admin@casamonarca.mx"
-bissuer = bsubject = create_usr_x509(badmin, 1)
-bcert, bkey = create_ck(2048, "badmin_key.pem", "badmin_cert.pem", bissuer,
-                        bsubject)
-
-# Coordinadora López
-lopez = {"name": "María López", "dept": "Legal", "lvl": "coordinador",
-         "mail": "m.lopez@casamonarca.mx", "joined": date(2024, 1, 1)}
-c1subject = create_usr_x509(lopez, 2)
-c1cert, c1key = create_ck(2048, "lopez_key.pem", "lopez_cert.pem", asubject,
-                          c1subject, akey)
-
-# Coordinador Morales
-morales = {"name": "Lucía Morales", "dept": "Almacén", "lvl": "coordinador",
-           "mail": "l.morales@casamonarca.mx", "joined": date(2019, 12, 1)}
-c2subject = create_usr_x509(morales, 3)
-c2cert, c2key = create_ck(2048, "morales_key.pem", "morales_cert.pem",
-                          asubject, c2subject, akey)
-
 # Database
 if not db.init(indir("dummy.json")):
     raise ValueError("Database file invalid format")
 
 if len(db.list_users()) != 0: exit()
+
+# Users
+admin = {"name": "Max Mustermann", "dept": "TI", "lvl": "admin",
+         "mail": "admin@casamonarca.mx", "joined": date(2026, 3, 10)}
+
+badmin = admin.copy()
+badmin["mail"] = "backup-admin@casamonarca.mx"
+
+lopez = {"name": "María López", "dept": "Legal", "lvl": "coordinador",
+         "mail": "m.lopez@casamonarca.mx", "joined": date(2024, 1, 1)}
+
+morales = {"name": "Lucía Morales", "dept": "Almacén", "lvl": "coordinador",
+           "mail": "l.morales@casamonarca.mx", "joined": date(2019, 12, 1)}
 
 # Write users
 dummy_users = [
@@ -143,9 +128,25 @@ dummy_users = [
      "mail": "d.fuentes@casamonarca.mx", "joined": date(2026, 1, 1)}
 ]
 
-list(map(lambda u: db.add_user(**u), dummy_users))
+dummy_user_ids = {}
+def upd(d, k, v):
+    d[k] = v
+    return v
+list(map(lambda u: upd(dummy_user_ids, u["mail"], db.add_user(**u)), dummy_users))
 
 # Write certificates
+aissuer = asubject = create_usr_x509(admin, dummy_user_ids[admin["mail"]])
+acert, akey = create_ck(2048, "admin_key.pem", "admin_cert.pem", aissuer,
+                        asubject)
+bissuer = bsubject = create_usr_x509(badmin, dummy_user_ids[badmin["mail"]])
+bcert, bkey = create_ck(2048, "badmin_key.pem", "badmin_cert.pem", bissuer,
+                        bsubject)
+c1subject = create_usr_x509(lopez, dummy_user_ids[lopez["mail"]])
+c1cert, c1key = create_ck(2048, "lopez_key.pem", "lopez_cert.pem", asubject,
+                          c1subject, akey)
+c2subject = create_usr_x509(morales, dummy_user_ids[morales["mail"]])
+c2cert, c2key = create_ck(2048, "morales_key.pem", "morales_cert.pem",
+                          asubject, c2subject, akey)
 if len(db.list_certs()) != 0: exit()
 
 add_cert(admin["mail"], acert)
