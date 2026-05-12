@@ -20,7 +20,7 @@ from src import ccore
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Starte the backend."
+        description="Start the backend."
     )
 
     parser.add_argument(
@@ -58,8 +58,8 @@ ccore.init(args.key)
 
 CORS(app)
 
-api = Api(app, version="1.0", title="Gestor-API", doc=False,
-    description="Gestor API", validate=True
+api = Api(app, version="1.0", title="Gestor", doc=False,
+    description="Gestor de identidades", validate=True
 )
 swaggerui_bp = get_swaggerui_blueprint(
     "/docs", "/swagger.json"
