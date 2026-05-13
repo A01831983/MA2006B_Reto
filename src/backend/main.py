@@ -15,7 +15,7 @@ import api_intf as ai
 import ccore
 
 
-ccore.init("examples/dummy_server_key.pem")
+ccore.init("examples/dummy_admin_key.pem")
 
 app = Flask(__name__)
 CORS(app)

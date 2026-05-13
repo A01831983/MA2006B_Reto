@@ -1,8 +1,7 @@
 #! /usr/bin/env python
 
 """
-Generates a dummy certificate for a user, saves it and the private key encrypted
-with password given as the command line.
+Generates a dummy certificate for the admin, and saves it and the private key.
 """
 
 __author__ = "Henning Arvid Ladewig"
@@ -27,7 +26,7 @@ key = rsa.generate_private_key(
 )
 
 # Save encrypted private key to a file
-with open(indir("dummy_client_key.pem"), "wb") as f:
+with open(indir("dummy_admin_key.pem"), "wb") as f:
     f.write(key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
@@ -36,15 +35,7 @@ with open(indir("dummy_client_key.pem"), "wb") as f:
 
 # Details about the issuer of this certificate
 # Since this is a self-issued certificate, these are the same for the subject
-issuer = x509.Name([
-    x509.NameAttribute(NameOID.COUNTRY_NAME, "MX"),
-    x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "Nuevo León"),
-    x509.NameAttribute(NameOID.LOCALITY_NAME, "Monterrey"),
-    x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Casa Monarca DUMMY TEST NOT REAL"),
-    x509.NameAttribute(NameOID.COMMON_NAME, "casamonarca.mx")
-])
-
-subject = x509.Name([
+issuer = subject = x509.Name([
     x509.NameAttribute(NameOID.COUNTRY_NAME, "MX"),
     x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "Nuevo León"),
     x509.NameAttribute(NameOID.LOCALITY_NAME, "Monterrey"),
@@ -52,7 +43,7 @@ subject = x509.Name([
     x509.NameAttribute(NameOID.GIVEN_NAME, "Max Mustermann"),
     x509.NameAttribute(NameOID.EMAIL_ADDRESS, "admin@casamonarca.mx"),
     x509.NameAttribute(NameOID.SERIAL_NUMBER, "0"),
-    x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, "IT,admin")
+    x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, "TI,admin")
 ])
 
 # Create certificate
@@ -63,8 +54,8 @@ cert = x509.CertificateBuilder().\
     serial_number(x509.random_serial_number()).\
     not_valid_before(datetime.datetime.now()).\
     not_valid_after(datetime.datetime.now() + datetime.timedelta(weeks=4)).\
-    sign(severkey, hashes.SHA256())
+    sign(key, hashes.SHA256())
 
 # Save the certificate to a file
-with open(indir("dummy_cert.pem"), "wb") as f:
+with open(indir("dummy_admin_cert.pem"), "wb") as f:
     f.write(cert.public_bytes(serialization.Encoding.PEM))
