@@ -9,7 +9,7 @@ __author__ = "Henning Arvid Ladewig"
 from enum import Enum
 from datetime import date, datetime
 
-from flask import jsonify
+from flask import jsonify, render_template, Response
 from flask_restx import Api, Resource, fields, reqparse
 from cryptography.hazmat.primitives import serialization
 import validators
@@ -158,6 +158,12 @@ def register(api, db_filename):
                                required=True)
 
     # Endpoints
+    @api.route("/")
+    class HomePage(Resource):
+        def get(self):
+            return Response(render_template("index.html"),
+                            mimetype="text/html")
+
     @api.route("/users")
     class Users(Resource):
         @api.doc(params={

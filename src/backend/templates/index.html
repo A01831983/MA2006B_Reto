@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Casa Monarca — Gestor de Identidades</title>
+  <style>
+    /* DM Mono 400 */
+    @font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url(https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYthqQBK6PYK0.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+    /* DM Mono 500 */
+    @font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url(https://fonts.gstatic.com/s/dmmono/v16/aFTR7PB1QTsUX8KYvumzEYOtbYf-Vlg.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+    /* DM Sans 300 italic */
+    @font-face { font-family: 'DM Sans'; font-style: italic; font-weight: 300; font-display: swap; src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Wp2ywxg089UriCZaSExdy3sGt9zz86D3wyKy58UfivUw.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+    /* DM Sans 300 */
+    @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 300; font-display: swap; src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+    /* DM Sans 400 */
+    @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+    /* DM Sans 500 */
+    @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 500; font-display: swap; src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+    /* DM Sans 600 */
+    @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  </style>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-50: #E1F5EE;
+      --green-100: #9FE1CB;
+      --green-200: #5DCAA5;
+      --green-500: #1D9E75;
+      --green-700: #0F6E56;
+      --green-900: #085041;
+      --blue-50: #E6F1FB;
+      --blue-100: #B5D4F4;
+      --blue-700: #185FA5;
+      --blue-900: #0C447C;
+      --amber-50: #FAEEDA;
+      --amber-400: #EF9F27;
+      --amber-700: #BA7517;
+      --amber-900: #633806;
+      --red-50: #FCEBEB;
+      --red-500: #E24B4A;
+      --red-700: #A32D2D;
+      --red-900: #791F1F;
+      --gray-50: #F7F6F3;
+      --gray-100: #EDECEA;
+      --gray-200: #D3D1C7;
+      --gray-400: #888780;
+      --gray-600: #5F5E5A;
+      --gray-800: #2C2C2A;
+      --gray-900: #1A1A18;
+      --purple-50: #EEEDFE;
+      --purple-700: #3C3489;
+      --purple-900: #26215C;
+      --surface: #FFFFFF;
+      --surface-2: #F7F6F3;
+      --surface-3: #EDECEA;
+      --text-primary: #1A1A18;
+      --text-secondary: #5F5E5A;
+      --text-hint: #888780;
+      --border: rgba(0,0,0,0.1);
+      --border-md: rgba(0,0,0,0.15);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+      --shadow-lg: 0 20px 48px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --font: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: var(--font);
+      background: var(--surface-2);
+      color: var(--text-primary);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ─── SIDEBAR ─── */
+    .sidebar {
+      width: 240px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100vh;
+      position: relative;
+      z-index: 10;
+    }
+
+    .sidebar-logo {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-mark {
+      width: 36px; height: 36px;
+      background: var(--green-500);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(29,158,117,0.35);
+    }
+
+    .logo-mark svg { width: 20px; height: 20px; }
+
+    .logo-name {
+      font-size: 15px; font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .logo-sub {
+      font-size: 12px; color: var(--text-hint);
+      margin-top: 1px;
+    }
+
+    nav { padding: 12px 10px; flex: 1; overflow-y: auto; }
+
+    .nav-section-label {
+      font-size: 10px; font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-hint);
+      padding: 6px 10px 4px;
+      margin-top: 4px;
+    }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+      transition: all 0.12s;
+      user-select: none;
+      position: relative;
+    }
+
+    .nav-item:hover {
+      background: var(--surface-2);
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      background: var(--green-50);
+      color: var(--green-700);
+      font-weight: 500;
+    }
+
+    .nav-item.active .nav-icon { color: var(--green-500); }
+
+    .nav-icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+    .nav-badge {
+      margin-left: auto;
+      font-size: 11px; font-weight: 500;
+      background: var(--green-500); color: white;
+      padding: 1px 7px; border-radius: 20px;
+    }
+
+    .nav-badge-warn {
+      margin-left: auto;
+      font-size: 11px; font-weight: 500;
+      background: var(--amber-50); color: var(--amber-700);
+      padding: 1px 7px; border-radius: 20px;
+    }
+
+    .sidebar-footer {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .admin-card {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface-2);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+    }
+
+    .avatar-circle {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11.5px; font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .admin-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+    .admin-role { font-size: 11px; color: var(--text-hint); margin-top: 1px; }
+
+    .mfa-badge {
+      margin-left: auto;
+      width: 20px; height: 20px;
+      background: var(--green-50); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ─── MAIN ─── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+
+    .breadcrumb {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; color: var(--text-hint);
+    }
+
+    .breadcrumb span { color: var(--text-primary); font-weight: 500; }
+
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--font);
+      font-size: 13px;
+      padding: 7px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-md);
+      background: var(--surface);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.12s;
+      font-weight: 400;
+    }
+
+    .btn:hover { background: var(--surface-2); border-color: var(--border-md); }
+    .btn:active { transform: scale(0.985); }
+
+    .btn-primary {
+      background: var(--green-500);
+      border-color: var(--green-700);
+      color: white;
+      font-weight: 500;
+      box-shadow: 0 1px 4px rgba(29,158,117,0.3);
+    }
+
+    .btn-primary:hover { background: var(--green-700); border-color: var(--green-700); }
+
+    .btn-danger {
+      background: var(--red-50);
+      border-color: var(--red-500);
+      color: var(--red-700);
+    }
+
+    .btn-danger:hover { background: var(--red-500); color: white; }
+
+    /* ─── CONTENT ─── */
+    .content { flex: 1; overflow-y: auto; padding: 28px; display: flex; flex-direction: column; gap: 24px; }
+
+    /* ─── STATS ─── */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    .stat-card.green::before { background: var(--green-500); }
+    .stat-card.blue::before { background: var(--blue-700); }
+    .stat-card.amber::before { background: var(--amber-400); }
+    .stat-card.red::before { background: var(--red-500); }
+
+    .stat-label { font-size: 11.5px; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; margin-bottom: 8px; }
+    .stat-val { font-size: 28px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.02em; line-height: 1; margin-bottom: 6px; }
+    .stat-sub { font-size: 12px; }
+    .stat-sub.up { color: var(--green-500); }
+    .stat-sub.warn { color: var(--amber-700); }
+    .stat-sub.danger { color: var(--red-500); }
+    .stat-sub.neutral { color: var(--text-hint); }
+
+    /* ─── TABLE PANEL ─── */
+    .table-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .table-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+
+    .table-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .table-count { font-size: 12px; color: var(--text-hint); margin-top: 1px; }
+
+    .filters { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+    .search-wrap {
+      position: relative;
+    }
+
+    .search-wrap svg {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      width: 14px; height: 14px; color: var(--text-hint);
+      pointer-events: none;
+    }
+
+    .search-input {
+      font-family: var(--font);
+      font-size: 13px;
+      padding: 7px 12px 7px 32px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-md);
+      background: var(--surface-2);
+      color: var(--text-primary);
+      outline: none;
+      width: 220px;
+      transition: border 0.15s, box-shadow 0.15s;
+    }
+
+    .search-input:focus {
+      border-color: var(--green-200);
+      box-shadow: 0 0 0 3px rgba(29,158,117,0.08);
+      background: var(--surface);
+    }
+
+    .filter-tabs { display: flex; gap: 4px; }
+
+    .filter-tab {
+      font-family: var(--font);
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+
+    .filter-tab:hover { background: var(--surface-2); }
+    .filter-tab.active { background: var(--green-50); color: var(--green-700); border-color: var(--green-100); font-weight: 500; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      text-align: left;
+      font-size: 11px; font-weight: 600;
+      color: var(--text-hint);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 10px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+      white-space: nowrap;
+    }
+
+    tbody tr { transition: background 0.1s; }
+    tbody tr:hover { background: var(--surface-2); }
+
+    tbody td {
+      padding: 13px 24px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13.5px;
+      color: var(--text-primary);
+      vertical-align: middle;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    .user-cell { display: flex; align-items: center; gap: 12px; }
+    .user-name { font-weight: 500; font-size: 13.5px; }
+    .user-email { font-size: 11.5px; color: var(--text-hint); margin-top: 1px; font-family: var(--font-mono); }
+
+    .level-badge {
+      font-size: 11px; font-weight: 600;
+      padding: 3px 9px; border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    .level-1 { background: #26215C; color: #CECBF6; }
+    .level-2 { background: var(--blue-50); color: var(--blue-900); }
+    .level-3 { background: var(--amber-50); color: var(--amber-900); }
+    .level-4 { background: #EEF0F5; color: #3D4460; }
+    .level-x { background: var(--gray-100); color: var(--gray-600); }
+
+    .perms-list { display: flex; gap: 4px; flex-wrap: wrap; }
+    .perm-pill {
+      font-size: 10.5px;
+      padding: 2px 7px; border-radius: 4px;
+      background: var(--surface-3);
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+    }
+
+    .cert-cell { display: flex; align-items: center; gap: 6px; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .dot-green { background: var(--green-500); box-shadow: 0 0 0 2px rgba(29,158,117,0.2); }
+    .dot-amber { background: var(--amber-400); box-shadow: 0 0 0 2px rgba(239,159,39,0.2); }
+    .dot-red   { background: var(--red-500);   box-shadow: 0 0 0 2px rgba(226,75,74,0.2); }
+    .dot-gray  { background: var(--gray-400);  box-shadow: 0 0 0 2px rgba(136,135,128,0.15); }
+
+    .cert-label { font-size: 12.5px; }
+    .cert-label.active { color: var(--green-700); }
+    .cert-label.warn { color: var(--amber-700); }
+    .cert-label.revoked { color: var(--red-700); }
+
+    .exp-date { font-size: 12px; font-family: var(--font-mono); color: var(--text-secondary); }
+    .exp-date.warn { color: var(--amber-700); font-weight: 500; }
+
+    .action-cell { display: flex; gap: 4px; }
+
+    .icon-btn {
+      width: 28px; height: 28px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary);
+      transition: all 0.12s;
+    }
+
+    .icon-btn:hover { background: var(--surface-2); color: var(--text-primary); }
+    .icon-btn.danger:hover { background: var(--red-50); color: var(--red-700); border-color: var(--red-500); }
+    .icon-btn:disabled { opacity: 0.35; pointer-events: none; }
+
+    /* ─── MODAL ─── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+      backdrop-filter: blur(2px);
+    }
+
+    .overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: var(--surface);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-md);
+      width: 480px;
+      max-width: calc(100vw - 40px);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(12px) scale(0.98);
+      transition: transform 0.2s;
+      overflow: hidden;
+    }
+
+    .overlay.open .modal { transform: translateY(0) scale(1); }
+
+    .modal-head {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: flex-start; justify-content: space-between;
+    }
+
+    .modal-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+    .modal-subtitle { font-size: 12px; color: var(--text-hint); margin-top: 2px; }
+
+    .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+
+    .form-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+
+    .form-input, .form-select {
+      font-family: var(--font);
+      font-size: 13.5px;
+      padding: 8px 11px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-md);
+      background: var(--surface-2);
+      color: var(--text-primary);
+      outline: none;
+      transition: border 0.15s, box-shadow 0.15s;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--green-200);
+      box-shadow: 0 0 0 3px rgba(29,158,117,0.08);
+      background: var(--surface);
+    }
+
+    .perm-section-label {
+      font-size: 12px; font-weight: 500; color: var(--text-secondary);
+      margin-bottom: 2px;
+    }
+
+    .perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    .perm-check {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--text-primary);
+      cursor: pointer;
+      padding: 7px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      transition: all 0.12s;
+      user-select: none;
+    }
+
+    .perm-check:hover { border-color: var(--green-200); background: var(--green-50); }
+    .perm-check input { accent-color: var(--green-500); width: 14px; height: 14px; }
+
+    .cert-info-box {
+      background: var(--green-50);
+      border: 1px solid var(--green-100);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      font-size: 12px; color: var(--green-900);
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+
+    .modal-foot {
+      padding: 14px 24px;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: flex-end; gap: 8px;
+      background: var(--surface-2);
+    }
+
+    /* ─── CERT DETAIL MODAL ─── */
+    .cert-field { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .cert-field:last-child { border-bottom: none; }
+    .cert-field-label { font-size: 12px; color: var(--text-hint); }
+    .cert-field-val { font-size: 12.5px; font-family: var(--font-mono); color: var(--text-primary); }
+
+    /* ─── CERT CARD (nuevo diseño) ─── */
+    .cert-card-header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 20px; margin: -20px -20px 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-alt, var(--gray-50));
+    }
+    .cert-card-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-weight: 600; font-size: 15px;
+      flex-shrink: 0;
+    }
+    .cert-card-info { flex: 1; min-width: 0; }
+    .cert-card-name { font-size: 14px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cert-card-sub  { font-size: 11.5px; color: var(--text-hint); margin-top: 2px; }
+    .cert-status-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 500;
+    }
+    .cert-status-badge.activo   { background: var(--green-50);  color: var(--green-700); }
+    .cert-status-badge.expirar  { background: var(--amber-50);  color: var(--amber-700); }
+    .cert-status-badge.revocado { background: var(--red-50);    color: var(--red-700); }
+    .cert-status-badge.ninguno  { background: var(--gray-100);  color: var(--gray-600); }
+
+    .cert-section { margin-top: 16px; }
+    .cert-section-label {
+      font-size: 10px; font-weight: 600; letter-spacing: .07em;
+      text-transform: uppercase; color: var(--text-hint);
+      margin-bottom: 6px; padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cert-row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; gap: 12px; }
+    .cert-row-label { font-size: 12px; color: var(--text-secondary); flex-shrink: 0; }
+    .cert-row-val   { font-size: 12px; font-family: var(--font-mono); color: var(--text-primary); text-align: right; }
+
+    .cert-validity-bar {
+      height: 5px; border-radius: 99px; background: var(--gray-100);
+      margin: 8px 0 4px; overflow: hidden;
+    }
+    .cert-validity-fill {
+      height: 100%; border-radius: 99px;
+      transition: width 0.4s ease;
+    }
+    .cert-validity-fill.green  { background: var(--green-500); }
+    .cert-validity-fill.amber  { background: var(--amber-400); }
+    .cert-validity-fill.red    { background: var(--red-500); }
+
+    .cert-pem-box {
+      margin-top: 14px; border: 1px solid var(--border); border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .cert-pem-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 7px 12px; background: var(--gray-50);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px; color: var(--text-hint); font-family: var(--font-mono);
+    }
+    .cert-pem-copy {
+      background: none; border: none; cursor: pointer;
+      font-size: 11px; color: var(--green-700); font-family: var(--font-sans);
+      padding: 2px 6px; border-radius: 4px;
+      transition: background 0.15s;
+    }
+    .cert-pem-copy:hover { background: var(--green-50); }
+    .cert-pem-body {
+      padding: 10px 12px; font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-secondary); line-height: 1.55;
+      max-height: 110px; overflow-y: auto;
+      word-break: break-all; white-space: pre-wrap;
+      background: var(--surface);
+    }
+
+    /* ─── TOAST ─── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--gray-900); color: white;
+      font-size: 13px; padding: 10px 16px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      z-index: 999;
+      opacity: 0; transform: translateY(8px);
+      transition: all 0.2s;
+      pointer-events: none;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: var(--green-700); }
+    .toast.danger { background: var(--red-700); }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 10px; }
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .stat-card { animation: fadeIn 0.3s ease both; }
+    .stat-card:nth-child(1) { animation-delay: 0.05s; }
+    .stat-card:nth-child(2) { animation-delay: 0.1s; }
+    .stat-card:nth-child(3) { animation-delay: 0.15s; }
+    .stat-card:nth-child(4) { animation-delay: 0.2s; }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 2L17 6V14L10 18L3 14V6L10 2Z" stroke="white" stroke-width="1.4" fill="none"/>
+        <circle cx="10" cy="10" r="2.5" fill="white"/>
+        <path d="M10 7.5V10" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="logo-name">Casa Monarca</div>
+    <div class="logo-sub">Gestor de Identidades v1.1</div>
+  </div>
+
+  <nav>
+    <div class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5.5" height="5.5" rx="1.2" fill="currentColor" opacity="0.9"/><rect x="8.5" y="2" width="5.5" height="5.5" rx="1.2" fill="currentColor" opacity="0.4"/><rect x="2" y="8.5" width="5.5" height="5.5" rx="1.2" fill="currentColor" opacity="0.4"/><rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1.2" fill="currentColor" opacity="0.4"/></svg>
+      Panel
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="admin-card">
+      <div class="avatar-circle" style="background: var(--green-900); color: var(--green-100);">RM</div>
+      <div>
+        <div class="admin-name">Resp. de TI</div>
+        <div class="admin-role">Nivel 1 · Administrador</div>
+      </div>
+      <div class="mfa-badge" title="MFA activo (Microsoft Authenticator)">
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M4 8l3 3 5-5" stroke="#1D9E75" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="breadcrumb">
+        Casa Monarca › <span>Panel de administración</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn" onclick="showToast('Exportando lista CRL...', '')">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3M3 13h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Exportar CRL
+      </button>
+      <button class="btn" onclick="showToast('Generando reporte de auditoría...', '')">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="3" y="1.5" width="10" height="13" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 6h5M5.5 8.5h3.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+        Reporte
+      </button>
+      <button class="btn btn-primary" onclick="openModal('new')">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Nuevo usuario
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card green">
+        <div class="stat-label">Usuarios registrados</div>
+        <div class="stat-val" id="stat-total-users">—</div>
+        <div class="stat-sub neutral">Cargando...</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Certificados vigentes</div>
+        <div class="stat-val" id="stat-certs">—</div>
+        <div class="stat-sub neutral">RSA-4096 · SHA-256</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Revocados en CRL</div>
+        <div class="stat-val" id="stat-revoked">—</div>
+        <div class="stat-sub neutral">Cargando...</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-label">Por expirar (30 días)</div>
+        <div class="stat-val" id="stat-expiring">—</div>
+        <div class="stat-sub neutral">Cargando...</div>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-panel">
+      <div class="table-header">
+        <div>
+          <div class="table-title">Directorio de usuarios</div>
+          <div class="table-count">Cargando usuarios...</div>
+        </div>
+        <div class="filters">
+          <div class="search-wrap">
+            <svg viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M9.5 9.5l3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            <input class="search-input" type="text" placeholder="Buscar usuario, área…" oninput="filterTable(this.value)"/>
+          </div>
+          <div class="filter-tabs">
+            <button class="filter-tab active" onclick="setFilter(this,'todos')">Todos</button>
+            <button class="filter-tab" onclick="setFilter(this,'activo')">Activos</button>
+            <button class="filter-tab" onclick="setFilter(this,'revocado')">Revocados</button>
+            <button class="filter-tab" onclick="setFilter(this,'expirar')">Por expirar</button>
+            <button class="filter-tab" onclick="setFilter(this,'captura')">Captura</button>
+            <button class="filter-tab" onclick="setFilter(this,'operativo')">Operativos</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table id="user-table">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Área</th>
+              <th>Nivel</th>
+              <th>Ingreso</th>
+              <th>Estado cert.</th>
+              <th>Expira</th>
+              <th>N/S Certificado</th>
+              <th style="width:100px">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NUEVO USUARIO -->
+<div class="overlay" id="overlay-new" onclick="closeModalOutside(event,'overlay-new')">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Registrar nuevo usuario</div>
+        <div class="modal-subtitle" id="new-modal-subtitle">Se generará un certificado X.509 firmado por Casa Monarca CA</div>
+      </div>
+      <button class="icon-btn" onclick="closeModal('new')">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nombre completo</label>
+        <input id="form-name" class="form-input" placeholder="Ej. María García López"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Correo institucional</label>
+        <input id="form-mail" class="form-input" placeholder="usuario@casamonarca.mx" type="email"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Área / Departamento</label>
+          <select id="form-dept" class="form-select">
+            <option value="Humanitaria">Humanitaria</option>
+            <option value="PsicoSocial">PsicoSocial</option>
+            <option value="Legal">Legal</option>
+            <option value="Comunicación">Comunicación</option>
+            <option value="Almacén">Almacén</option>
+            <option value="TI">TI</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nivel de acceso</label>
+          <!-- valores = Levels enum de api_intf.py -->
+          <select id="form-level" class="form-select" onchange="updateNewModalCertVisibility()">
+            <option value="admin">Nivel 1 — Administrador</option>
+            <option value="coordinador" selected>Nivel 2 — Coordinador</option>
+            <option value="operativo">Nivel 3 — Operativo/a</option>
+            <option value="captura">Nivel 4 — Captura</option>
+          </select>
+        </div>
+      </div>
+      <div id="form-cert-section" style="display:flex;flex-direction:column;gap:16px">
+        <div class="form-group">
+          <label class="form-label">Vigencia del certificado</label>
+          <select id="form-validity" class="form-select">
+            <option value="4">4 semanas (predeterminado)</option>
+            <option value="13">3 meses</option>
+            <option value="26">6 meses</option>
+            <option value="52">1 año</option>
+          </select>
+        </div>
+        <div class="cert-info-box">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:1px"><path d="M8 2l2 4h4l-3 2.5 1 4L8 10l-4 2.5 1-4L2 6h4L8 2z" stroke="#0F6E56" stroke-width="1.2" fill="none"/></svg>
+          <span>Se generará un par de claves RSA-4096. La clave privada se entregará cifrada al usuario. El certificado será firmado con SHA-256 por la CA raíz de Casa Monarca.</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('new')">Cancelar</button>
+      <button class="btn btn-primary" id="new-modal-submit-btn" onclick="createUser()">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="3" y="1.5" width="10" height="13" rx="1.5" stroke="white" stroke-width="1.2"/><path d="M6 8.5l2 2 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="new-modal-submit-label">Generar certificado</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR USUARIO -->
+<div class="overlay" id="overlay-edit" onclick="closeModalOutside(event,'overlay-edit')">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Editar usuario</div>
+        <div class="modal-subtitle" id="edit-modal-subtitle">Modificar datos del colaborador</div>
+      </div>
+      <button class="icon-btn" onclick="closeModal('edit')">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-uid"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nombre completo</label>
+          <input id="edit-name" class="form-input" placeholder="Ej. María García López"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo institucional</label>
+          <input id="edit-mail" class="form-input" placeholder="usuario@casamonarca.mx" type="email"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Área / Departamento</label>
+          <select id="edit-dept" class="form-select">
+            <option value="Humanitaria">Humanitaria</option>
+            <option value="PsicoSocial">PsicoSocial</option>
+            <option value="Legal">Legal</option>
+            <option value="Comunicación">Comunicación</option>
+            <option value="Almacén">Almacén</option>
+            <option value="TI">TI</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nivel de acceso</label>
+          <select id="edit-lvl" class="form-select">
+            <option value="admin">Nivel 1 — Administrador</option>
+            <option value="coordinador">Nivel 2 — Coordinador</option>
+            <option value="operativo">Nivel 3 — Operativo/a</option>
+            <option value="captura">Nivel 4 — Captura</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha de ingreso</label>
+        <input id="edit-joined" class="form-input" type="date"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Extender vigencia del certificado</label>
+        <select id="edit-extend" class="form-select">
+          <option value="0">— Sin extensión —</option>
+          <option value="4">+ 4 semanas</option>
+          <option value="8">+ 2 meses</option>
+          <option value="13">+ 3 meses</option>
+          <option value="26">+ 6 meses</option>
+          <option value="52">+ 1 año</option>
+        </select>
+      </div>
+      <div id="edit-extend-info" class="cert-info-box" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:1px"><circle cx="8" cy="8" r="6" stroke="#0F6E56" stroke-width="1.2"/><path d="M8 5v3.5l2 2" stroke="#0F6E56" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span id="edit-extend-text"></span>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('edit')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditUser()">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.5 3.5 6.5-7" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Guardar cambios
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DETALLE CERTIFICADO -->
+<div class="overlay" id="overlay-cert" onclick="closeModalOutside(event,'overlay-cert')">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="cert-modal-name">Certificado — María López</div>
+        <div class="modal-subtitle">X.509 v3 · Emitido por Casa Monarca Root CA</div>
+      </div>
+      <button class="icon-btn" onclick="closeModal('cert')">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="cert-fields"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('cert')">Cerrar</button>
+      <button id="cert-download-btn" class="btn" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3M3 13h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Descargar .pem
+      </button>
+      <button class="btn btn-danger" onclick="revokeFromModal()">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Revocar certificado
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+// Cambia este valor si tu backend corre en otro puerto
+const API = 'http://localhost:8000/api';
+
+// ─── HELPERS DE NIVEL (mapeo desde api_intf.py Levels enum) ──────────────────
+// Backend usa: "admin" | "coordinador" | "captura"  (LevelEnum en api_intf.py)
+const LEVEL_META = {
+  'admin':       { num: 1, label: 'Administrador',  cls: 'level-1', hasCert: true  },
+  'coordinador': { num: 2, label: 'Coordinador/a',  cls: 'level-2', hasCert: true  },
+  'captura':     { num: 4, label: 'Captura',        cls: 'level-4', hasCert: false },
+  'operativo':  { num: 3, label: 'Operativo/a',   cls: 'level-3', hasCert: false },
+};
+
+const AVATAR_PALETTE = [
+  { bg:'#E1F5EE', fg:'#085041' }, { bg:'#E6F1FB', fg:'#0C447C' },
+  { bg:'#FAEEDA', fg:'#633806' }, { bg:'#FCEBEB', fg:'#791F1F' },
+  { bg:'#EEEDFE', fg:'#3C3489' }, { bg:'#F1EFE8', fg:'#444441' },
+  { bg:'#E1F5EE', fg:'#085041' }, { bg:'#FBEAF0', fg:'#4B1528' },
+];
+
+function initials(name) {
+  return name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+}
+
+function palette(uid) {
+  const i = parseInt(uid) % AVATAR_PALETTE.length;
+  return AVATAR_PALETTE[i] || AVATAR_PALETTE[0];
+}
+
+// ─── ESTADO LOCAL ─────────────────────────────────────────────────────────────
+// users y certs se cargan del backend; los CSRs pendientes también
+let USERS = [];       // [ User ]  — campos de api_intf.py
+let CERTS = [];       // [ CertificateInfo ]
+let CSRS  = [];       // [ CSRStatus ]
+
+// Índices para joins rápidos en el frontend
+let certsByUid = {};  // uid -> [ CertificateInfo ]
+
+let currentFilter = 'todos';
+let currentSearch = '';
+let currentCertUser = null;   // { user, cert }
+
+// ─── FETCH GENÉRICO ───────────────────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+  try {
+    const res = await fetch(API + path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...opts,
+    });
+    // El backend devuelve errores con texto descriptivo — los capturamos
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`API error ${res.status} en ${path}:`, errText);
+      return { _error: true, status: res.status, message: errText };
+    }
+    return await res.json();
+  } catch (e) {
+    console.error('API error:', path, e);
+    return null;
+  }
+}
+
+// ─── REGISTRO LOCAL DE REVOCACIONES ──────────────────────────────────────────
+// Mientras el backend no persista revocaciones, las guardamos aquí
+const revokedCertIds = new Set();
+
+// ─── CARGA INICIAL ────────────────────────────────────────────────────────────
+async function loadAll() {
+  setLoading(true);
+
+  // El backend tiene GET /users y GET /certs. No existe /csrs.
+  const [users, certs] = await Promise.all([
+    apiFetch('/users'),
+    apiFetch('/certs'),
+  ]);
+
+  USERS = Array.isArray(users) ? users : [];
+  CERTS = Array.isArray(certs) ? certs : [];
+  CSRS  = [];
+
+  // Normalizar campo revocado: el backend usa "revoked", el frontend usa "revocated"
+  for (const c of CERTS) {
+    if (c.revoked !== undefined) c.revocated = c.revoked;
+    if (revokedCertIds.has(c.id)) c.revocated = true;
+  }
+
+  // Construir índice cert por uid
+  certsByUid = {};
+  for (const c of CERTS) {
+    if (!certsByUid[c.uid]) certsByUid[c.uid] = [];
+    certsByUid[c.uid].push(c);
+  }
+
+  updateStats();
+  renderTable();
+  updateCsrBadge();
+  setLoading(false);
+}
+
+function setLoading(on) {
+  const body = document.getElementById('table-body');
+  if (on) body.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-hint);font-size:13px">Cargando desde el backend…</td></tr>`;
+}
+
+// ─── STATS ────────────────────────────────────────────────────────────────────
+function updateStats() {
+  const now        = Date.now();
+  const thisMonth  = new Date();
+  const monthStart = new Date(thisMonth.getFullYear(), thisMonth.getMonth(), 1).getTime();
+
+  // Usuarios totales registrados
+  const totalUsers = USERS.length;
+
+  // Nuevos incorporados este mes (por fecha de ingreso)
+  const newThisMonth = USERS.filter(u => {
+    if (!u.joined) return false;
+    return new Date(u.joined).getTime() >= monthStart;
+  }).length;
+
+  // Solo contar certificados cuyo usuario aún existe en USERS
+  const activeUids = new Set(USERS.map(u => u.id));
+  const activeCerts = CERTS.filter(c => activeUids.has(c.uid));
+
+  // Certificados vigentes (no revocados, no expirados, usuario existente)
+  const vigentes = activeCerts.filter(c => {
+    if (c.revocated) return false;
+    return (new Date(c.not_after) - now) / 86400000 >= 0;
+  }).length;
+
+  // Revocados (usuario existente)
+  const revoked = activeCerts.filter(c => c.revocated).length;
+
+  // Por expirar en 30 días (usuario existente)
+  const soon = activeCerts.filter(c => {
+    if (c.revocated) return false;
+    const d = (new Date(c.not_after) - now) / 86400000;
+    return d >= 0 && d <= 30;
+  }).length;
+
+  // Actualizar valores
+  document.querySelector('.stat-card.green .stat-val').textContent  = totalUsers;
+  document.querySelector('.stat-card.blue .stat-val').textContent   = vigentes;
+  document.querySelector('.stat-card.red .stat-val').textContent    = revoked;
+  document.querySelector('.stat-card.amber .stat-val').textContent  = soon;
+
+  // Subtítulos dinámicos
+  const greenSub = document.querySelector('.stat-card.green .stat-sub');
+  if (newThisMonth > 0) {
+    greenSub.textContent = `+${newThisMonth} incorporado${newThisMonth > 1 ? 's' : ''} este mes`;
+    greenSub.className = 'stat-sub up';
+  } else {
+    greenSub.textContent = 'Sin incorporaciones este mes';
+    greenSub.className = 'stat-sub neutral';
+  }
+
+  document.querySelector('.stat-card.blue .stat-sub').textContent  = 'RSA-4096 · SHA-256';
+
+  const redSub = document.querySelector('.stat-card.red .stat-sub');
+  redSub.textContent  = revoked > 0 ? 'Requieren seguimiento' : 'Sin revocaciones';
+  redSub.className    = revoked > 0 ? 'stat-sub danger' : 'stat-sub neutral';
+
+  const amberSub = document.querySelector('.stat-card.amber .stat-sub');
+  amberSub.textContent = soon > 0 ? 'Renovación pendiente' : 'Todo al día';
+  amberSub.className   = soon > 0 ? 'stat-sub warn' : 'stat-sub neutral';
+
+  // Actualizar subtítulo de la tabla
+  const tableCount = document.querySelector('.table-count');
+  if (tableCount) {
+    const sinCert = USERS.filter(u => {
+      const m = LEVEL_META[u.lvl];
+      return m && !m.hasCert;
+    }).length;
+    const conCert = totalUsers - sinCert;
+    tableCount.textContent =
+      `${totalUsers} usuario${totalUsers !== 1 ? 's' : ''} registrado${totalUsers !== 1 ? 's' : ''} — ${conCert} con certificado, ${sinCert} sin certificado`;
+  }
+}
+
+function updateCsrBadge() {
+  // Actualiza el badge de CSRs pendientes en el sidebar (si existiera)
+  // Por ahora solo logueamos
+  console.log(`CSRs pendientes: ${CSRS.length}`);
+}
+
+// ─── HELPERS DE CERT ──────────────────────────────────────────────────────────
+// Dado un usuario, retorna su cert más reciente (o null)
+function latestCert(uid) {
+  const certs = certsByUid[uid];
+  if (!certs || certs.length === 0) return null;
+  return certs.sort((a, b) => new Date(b.not_after) - new Date(a.not_after))[0];
+}
+
+function certStatus(cert) {
+  if (!cert) return 'sin-cert';
+  if (cert.revocated) return 'revocado';
+  const daysLeft = (new Date(cert.not_after) - Date.now()) / 86400000;
+  if (daysLeft < 0) return 'expirado';
+  if (daysLeft <= 30) return 'expirar';
+  return 'activo';
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('es-MX', { year:'numeric', month:'short', day:'numeric' });
+}
+
+// ─── RENDER TABLA ─────────────────────────────────────────────────────────────
+function renderTable() {
+  const body = document.getElementById('table-body');
+
+  const filtered = USERS.filter(u => {
+    const matchSearch = !currentSearch ||
+      u.name.toLowerCase().includes(currentSearch) ||
+      u.mail.toLowerCase().includes(currentSearch) ||
+      u.dept.toLowerCase().includes(currentSearch);
+
+    const cert = latestCert(u.id);
+    const status = certStatus(cert);
+    const matchFilter =
+      currentFilter === 'todos'      ? true :
+      currentFilter === 'activo'     ? status === 'activo' :
+      currentFilter === 'revocado'   ? status === 'revocado' :
+      currentFilter === 'expirar'    ? status === 'expirar' :
+      currentFilter === 'captura'    ? u.lvl === 'captura' :
+      currentFilter === 'operativo' ? u.lvl === 'operativo' : true;
+
+    return matchSearch && matchFilter;
+  });
+
+  if (filtered.length === 0) {
+    body.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-hint);font-size:13px">Sin resultados</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = filtered.map(u => {
+    const cert    = latestCert(u.id);
+    const status  = certStatus(cert);
+    const pal     = palette(u.id);
+    const ini     = initials(u.name);
+
+    // Nivel — viene del usuario (lvl), no del cert
+    const lvlKey  = u.lvl || null;
+    const lvlMeta = LEVEL_META[lvlKey] || { num: '?', label: 'Sin nivel', cls: 'level-x' };
+
+    const dotClass = 
+      status === 'activo'  ? 'dot-green' :
+      status === 'expirar' ? 'dot-amber' :
+      status === 'sin-cert'? 'dot-gray'  : 'dot-red';
+    const certLabel =
+      status === 'activo'   ? '<span class="cert-label active">Activo</span>'       :
+      status === 'expirar'  ? '<span class="cert-label warn">Por expirar</span>'    :
+      status === 'revocado' ? '<span class="cert-label revoked">Revocado</span>'    :
+      status === 'expirado' ? '<span class="cert-label revoked">Expirado</span>'    :
+                              '<span class="cert-label" style="color:var(--text-hint)">Sin cert.</span>';
+
+    const expDate  = cert ? fmtDate(cert.not_after) : '—';
+    const expClass = status === 'expirar' ? 'warn' : '';
+    const certId   = cert ? cert.id : '—';
+    const disabledRevoke = (!cert || cert.revocated) ? 'disabled' : '';
+
+    return `<tr data-uid="${u.id}">
+      <td>
+        <div class="user-cell">
+          <div class="avatar-circle" style="background:${pal.bg};color:${pal.fg}">${ini}</div>
+          <div>
+            <div class="user-name">${u.name}</div>
+            <div class="user-email">${u.mail}</div>
+          </div>
+        </div>
+      </td>
+      <td style="color:var(--text-secondary);font-size:13px">${u.dept}</td>
+      <td><span class="level-badge ${lvlMeta.cls}">N${lvlMeta.num} · ${lvlMeta.label}</span></td>
+      <td><span style="font-size:12px;color:var(--text-secondary)">${fmtDate(u.joined)}</span></td>
+      <td><div class="cert-cell"><div class="status-dot ${dotClass}"></div>${certLabel}</div></td>
+      <td><span class="exp-date ${expClass}">${expDate}</span></td>
+      <td><span style="font-family:var(--font-mono);font-size:11.5px;color:var(--text-hint)">${certId}</span></td>
+      <td>
+        <div class="action-cell">
+          <button class="icon-btn" title="Ver certificado" onclick="showCert('${u.id}')">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M8 7v3.5M8 5.5v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </button>
+          <button class="icon-btn" title="Editar usuario" onclick="openEditModal('${u.id}')">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M11 3l2 2-7 7H4v-2l7-7z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="icon-btn danger" title="Revocar certificado" ${disabledRevoke} onclick="revokeUser('${u.id}')">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </button>
+          <button class="icon-btn danger" title="Eliminar usuario" onclick="deleteUser('${u.id}','${u.name.replace(/'/g,"\\'")}')">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 5h10M6 5V3h4v2M5.5 5l.5 8h4l.5-8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── FILTROS ──────────────────────────────────────────────────────────────────
+function filterTable(val) {
+  currentSearch = val.toLowerCase();
+  renderTable();
+}
+
+function setFilter(el, filter) {
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = filter;
+  renderTable();
+}
+
+function setNav(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ─── MODALES ──────────────────────────────────────────────────────────────────
+function openModal(type) {
+  document.getElementById(`overlay-${type}`).classList.add('open');
+  if (type === 'new') updateNewModalCertVisibility();
+}
+function closeModal(type) { document.getElementById(`overlay-${type}`).classList.remove('open'); }
+function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id.replace('overlay-','')); }
+
+// ─── VER CERTIFICADO ──────────────────────────────────────────────────────────
+async function showCert(uid) {
+  const u    = USERS.find(x => x.id === uid);
+  const cert = latestCert(uid);
+  if (!u) return;
+
+  currentCertUser = { user: u, cert };
+  document.getElementById('cert-modal-name').textContent = `Certificado — ${u.name}`;
+
+  // Fetch raw PEM
+  let rawPem = null;
+  if (cert) {
+    const rawReply = await apiFetch(`/certs/${encodeURIComponent(cert.id)}`);
+    if (rawReply && !rawReply._error && rawReply.raw) rawPem = rawReply.raw;
+  }
+
+  const lvlMeta = LEVEL_META[u.lvl] || {};
+  const status  = certStatus(cert);   // 'activo' | 'expirar' | 'revocado' | null
+
+  // ── avatar ──
+  const pal   = palette(u.id);
+  const ini   = initials(u.name);
+
+  // ── validity progress bar ──
+  let barPct = 0, barCls = 'green';
+  if (cert && status !== 'revocado') {
+    const start = new Date(cert.not_before).getTime();
+    const end   = new Date(cert.not_after).getTime();
+    const now   = Date.now();
+    barPct = Math.max(0, Math.min(100, ((end - now) / (end - start)) * 100));
+    barCls = barPct > 30 ? 'green' : barPct > 10 ? 'amber' : 'red';
+  }
+
+  // ── days left label ──
+  let daysLabel = '';
+  if (cert) {
+    const days = Math.ceil((new Date(cert.not_after) - Date.now()) / 86400000);
+    if (status === 'revocado')     daysLabel = 'Revocado';
+    else if (days < 0)             daysLabel = 'Expirado';
+    else if (days === 0)           daysLabel = 'Expira hoy';
+    else                           daysLabel = `${days} día${days !== 1 ? 's' : ''} restantes`;
+  }
+
+  // ── status badge ──
+  const badgeCls  = status || 'ninguno';
+  const badgeDot  = { activo:'#1D9E75', expirar:'#EF9F27', revocado:'#E24B4A', ninguno:'#888780' }[badgeCls];
+  const badgeTxt  = { activo:'Válido', expirar:'Próximo a expirar', revocado:'Revocado', ninguno:'Sin certificado' }[badgeCls];
+
+  // ── PEM block ──
+  const pemBlock = rawPem ? `
+    <div class="cert-pem-box">
+      <div class="cert-pem-head">
+        <span>CERTIFICATE (PEM)</span>
+        <button class="cert-pem-copy" onclick="copyPem()">Copiar</button>
+      </div>
+      <div class="cert-pem-body" id="cert-pem-text">${rawPem.trim()}</div>
+    </div>` : '';
+
+  document.getElementById('cert-fields').innerHTML = `
+    <!-- Header card -->
+    <div class="cert-card-header">
+      <div class="cert-card-avatar" style="background:${pal.bg};color:${pal.fg}">${ini}</div>
+      <div class="cert-card-info">
+        <div class="cert-card-name">${u.name}</div>
+        <div class="cert-card-sub">${u.mail}</div>
+      </div>
+      <span class="cert-status-badge ${badgeCls}">
+        <svg width="7" height="7" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="${badgeDot}"/></svg>
+        ${badgeTxt}
+      </span>
+    </div>
+
+    <!-- Identidad -->
+    <div class="cert-section">
+      <div class="cert-section-label">Identidad</div>
+      <div class="cert-row"><span class="cert-row-label">ID de certificado</span><span class="cert-row-val">${cert ? cert.id : '—'}</span></div>
+      <div class="cert-row"><span class="cert-row-label">UID de usuario</span><span class="cert-row-val">${u.id}</span></div>
+      <div class="cert-row"><span class="cert-row-label">Departamento</span><span class="cert-row-val">${u.dept}</span></div>
+      <div class="cert-row"><span class="cert-row-label">Nivel de acceso</span><span class="cert-row-val">${lvlMeta.label || u.lvl}</span></div>
+    </div>
+
+    <!-- Emisor -->
+    <div class="cert-section">
+      <div class="cert-section-label">Emisor</div>
+      <div class="cert-row"><span class="cert-row-label">Organización</span><span class="cert-row-val">Casa Monarca A.C.</span></div>
+      <div class="cert-row"><span class="cert-row-label">CA raíz</span><span class="cert-row-val">Casa Monarca Root CA</span></div>
+      <div class="cert-row"><span class="cert-row-label">País / Estado</span><span class="cert-row-val">MX / Nuevo León</span></div>
+    </div>
+
+    ${cert ? `
+    <!-- Vigencia -->
+    <div class="cert-section">
+      <div class="cert-section-label">Vigencia</div>
+      <div class="cert-row"><span class="cert-row-label">Válido desde</span><span class="cert-row-val">${fmtDate(cert.not_before)}</span></div>
+      <div class="cert-row"><span class="cert-row-label">Válido hasta</span><span class="cert-row-val">${fmtDate(cert.not_after)}</span></div>
+      <div class="cert-validity-bar"><div class="cert-validity-fill ${barCls}" style="width:${barPct.toFixed(1)}%"></div></div>
+      <div style="font-size:11px;color:var(--text-hint);text-align:right">${daysLabel}</div>
+    </div>` : `
+    <div class="cert-section">
+      <div class="cert-row"><span class="cert-row-label">Certificado</span><span class="cert-row-val" style="color:var(--text-hint)">Sin certificado emitido</span></div>
+    </div>`}
+
+    ${pemBlock}
+  `;
+
+  // ── Download button ──
+  const dlBtn = document.getElementById('cert-download-btn');
+  if (dlBtn) {
+    if (cert && rawPem) {
+      dlBtn.style.display = '';
+      dlBtn.onclick = () => downloadPem(rawPem, `cert_${u.name.replace(/\s+/g,'_')}_${cert.id}.pem`);
+    } else {
+      dlBtn.style.display = 'none';
+    }
+  }
+
+  openModal('cert');
+}
+
+function copyPem() {
+  const txt = document.getElementById('cert-pem-text');
+  if (!txt) return;
+  navigator.clipboard.writeText(txt.textContent).then(() => showToast('PEM copiado al portapapeles', 'success'));
+}
+
+// ─── REVOCAR ──────────────────────────────────────────────────────────────────
+// NOTA: el backend aún no tiene endpoint DELETE /certs o PATCH /certs/{id}/revoke
+// Por ahora marcamos localmente y mostramos el flujo correcto.
+// Cuando el backend lo implemente, reemplazar el bloque marcado con "// TODO".
+async function revokeUser(uid) {
+  const u    = USERS.find(x => x.id === uid);
+  const cert = latestCert(uid);
+  if (!u || !cert || cert.revocated) return;
+  if (!confirm(`¿Revocar el certificado de ${u.name}?\nEsta acción lo añadirá a la Lista CRL.`)) return;
+
+  // TODO: await apiFetch(`/certs/${cert.id}/revoke`, { method: 'POST' });
+  // Guardamos en el registro local para sobrevivir recargas
+  revokedCertIds.add(cert.id);
+  cert.revocated = true;
+
+  updateStats();
+  renderTable();
+  showToast(`Certificado de ${u.name} revocado y añadido a CRL`, 'danger');
+}
+
+async function revokeFromModal() {
+  if (!currentCertUser) return;
+  closeModal('cert');
+  setTimeout(() => revokeUser(currentCertUser.user.id), 150);
+}
+
+// ─── VISIBILIDAD CERTIFICADO EN MODAL NUEVO ───────────────────────────────────
+function updateNewModalCertVisibility() {
+  const lvl = document.getElementById('form-level').value;
+  const noCert = (lvl === 'captura' || lvl === 'operativo');
+  document.getElementById('form-cert-section').style.display = noCert ? 'none' : '';
+  const roleLabel = lvl === 'operativo' ? 'Operativos' : lvl === 'captura' ? 'Captura' : '';
+  document.getElementById('new-modal-subtitle').textContent = noCert
+    ? `${roleLabel} no requieren certificado digital`
+    : 'Se generará un certificado X.509 firmado por Casa Monarca CA';
+  document.getElementById('new-modal-submit-label').textContent = noCert
+    ? 'Registrar usuario'
+    : 'Generar certificado';
+}
+
+// ─── CREAR USUARIO ────────────────────────────────────────────────────────────
+// El backend espera POST /users con: { name, dept, lvl, mail, joined }
+//   lvl acepta: "admin" | "coordinador" | "operativo" | "captura"
+//   - "joined" en formato YYYY-MM-DD
+//   - El backend genera el id; lo devuelve en { id: "..." }
+// Luego POST /certs con query params: uid, not_before, not_after (YYYY-MM-DD)
+//   y body: { key_size, pwd }
+async function createUser() {
+  const name  = document.getElementById('form-name').value.trim();
+  const mail  = document.getElementById('form-mail').value.trim();
+  const dept  = document.getElementById('form-dept').value;
+  const lvl   = document.getElementById('form-level').value;
+  const weeks = parseInt(document.getElementById('form-validity')?.value || '4');
+
+  if (!name || !mail) {
+    showToast('Completa nombre y correo', 'danger');
+    return;
+  }
+
+  // Fecha de ingreso: hoy en YYYY-MM-DD
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  // 1. Crear usuario  →  POST /users
+  const payload = { name, dept, lvl, mail, joined: todayStr };
+  console.group('[Casa Monarca] POST /users');
+  console.log('Payload enviado:', JSON.stringify(payload, null, 2));
+
+  const userReply = await apiFetch('/users', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+  console.log('Respuesta del backend:', userReply);
+  console.groupEnd();
+
+  if (!userReply || userReply._error || !userReply.id) {
+    // Si el backend rechazó el nivel, el mensaje lo dirá claramente
+    const msg = userReply?.message || 'Error al crear usuario';
+    const isLevelError = msg.toLowerCase().includes('level') || msg.toLowerCase().includes('lvl') || msg.toLowerCase().includes('enum');
+    showToast(
+      isLevelError
+        ? `El backend rechazó el nivel "${lvl}". Revisa LevelEnum en api_intf.py`
+        : msg,
+      'danger'
+    );
+    return;
+  }
+
+  const uid = userReply.id;
+  console.log(`[Casa Monarca] Usuario creado con uid=${uid}, lvl=${lvl}`);
+
+  // 2. Crear certificado solo si el nivel lo requiere (no para captura ni operativos)
+  if (lvl === 'captura' || lvl === 'operativo') {
+    closeModal('new');
+    document.getElementById('form-name').value = '';
+    document.getElementById('form-mail').value = '';
+    const roleLabel = lvl === 'operativo' ? 'Operativo/a' : 'Captura';
+    showToast(`${roleLabel} ${name} registrado/a (sin certificado) — uid: ${uid}`, 'success');
+    await loadAll();
+    return;
+  }
+
+  // 2. Crear certificado  →  POST /certs?uid=...&not_before=...&not_after=...
+  //    Body: { key_size: 4096, pwd: "<contrasena única por certificado>" }
+  const notBefore = new Date();
+  const notAfter  = new Date(notBefore.getTime() + weeks * 7 * 86400000);
+  const nbStr     = notBefore.toISOString().slice(0, 10);
+  const naStr     = notAfter.toISOString().slice(0, 10);
+
+  // Generar contraseña única por certificado (nunca reutilizar entre usuarios)
+  const certPwd = generateCertPassword(uid);
+  console.log(`[Casa Monarca] Contraseña del certificado para uid=${uid}: ${certPwd}`);
+
+  const certReply = await apiFetch(
+    `/certs?uid=${encodeURIComponent(uid)}&not_before=${nbStr}&not_after=${naStr}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ key_size: 4096, pwd: certPwd }),
+    }
+  );
+
+  closeModal('new');
+  document.getElementById('form-name').value = '';
+  document.getElementById('form-mail').value = '';
+
+  if (!certReply || certReply._error) {
+    showToast(`Usuario ${name} creado, pero error al emitir certificado`, 'danger');
+  } else {
+    showToast(`Usuario ${name} creado y certificado emitido`, 'success');
+    if (certReply.raw) {
+      downloadPem(certReply.raw, `clave_privada_${uid}.pem`);
+    }
+    // Mostrar la contraseña única al administrador para que la entregue al usuario
+    showCertPasswordDialog(name, certPwd);
+  }
+
+  // 3. Recargar desde el backend para reflejar estado real
+  await loadAll();
+}
+
+// ─── CONTRASEÑA DE CERTIFICADO ────────────────────────────────────────────────
+// Genera una contraseña única por certificado usando crypto.getRandomValues
+// Nunca se reutiliza entre usuarios ni entre emisiones del mismo usuario
+function generateCertPassword(uid) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%&*';
+  const array = new Uint8Array(20);
+  crypto.getRandomValues(array);
+  return Array.from(array).map(b => chars[b % chars.length]).join('');
+}
+
+function showCertPasswordDialog(name, pwd) {
+  // Always remove any existing instance before creating a fresh one
+  const existing = document.getElementById('pwd-dialog');
+  if (existing) existing.remove();
+
+  const dlg = document.createElement('div');
+  dlg.id = 'pwd-dialog';
+  dlg.style.cssText = `
+    position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.45);backdrop-filter:blur(4px)`;
+
+  const close = () => dlg.remove();
+
+  // Clicking the backdrop closes the dialog
+  dlg.addEventListener('click', e => { if (e.target === dlg) close(); });
+
+  dlg.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;
+                padding:28px 28px 22px;max-width:420px;width:90%;box-shadow:var(--shadow-lg)">
+      <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:6px">
+        Contraseña del certificado
+      </div>
+      <div style="font-size:12.5px;color:var(--text-secondary);margin-bottom:18px">
+        Certificado generado para ${name}. Contraseña unica para descifrar la clave privada:
+      </div>
+      <div style="background:var(--gray-50);border:1px solid var(--border);border-radius:8px;
+                  padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:18px">
+        <code id="pwd-dialog-value" style="font-family:var(--font-mono);font-size:13.5px;
+              color:var(--green-900);font-weight:600;flex:1;word-break:break-all">${pwd}</code>
+        <button id="pwd-copy-btn"
+          style="background:var(--green-50);border:1px solid var(--green-200);border-radius:6px;
+                 padding:5px 10px;font-size:11.5px;font-weight:600;color:var(--green-900);cursor:pointer;
+                 white-space:nowrap">
+          Copiar
+        </button>
+      </div>
+      <div style="font-size:11.5px;color:var(--text-hint);margin-bottom:20px;line-height:1.5">
+        Esta contraseña no se volvera a mostrar. Entreguela al usuario de forma segura
+        antes de cerrar esta ventana.
+      </div>
+      <div style="display:flex;justify-content:flex-end">
+        <button id="pwd-close-btn"
+          style="background:var(--green-600);color:#fff;border:none;border-radius:8px;
+                 padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer">
+          Entendido, cerrar
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(dlg);
+
+  document.getElementById('pwd-close-btn').addEventListener('click', close);
+  document.getElementById('pwd-copy-btn').addEventListener('click', () => {
+    navigator.clipboard.writeText(pwd);
+    document.getElementById('pwd-copy-btn').textContent = 'Copiado';
+    setTimeout(() => {
+      const btn = document.getElementById('pwd-copy-btn');
+      if (btn) btn.textContent = 'Copiar';
+    }, 2000);
+  });
+}
+
+// ─── ELIMINAR USUARIO ─────────────────────────────────────────────────────────
+// DELETE /users?uid=<uid>  (el uid debe coincidir exactamente con uno)
+async function deleteUser(uid, name) {
+  if (!confirm(`¿Eliminar al usuario ${name}?\nEsta acción no se puede deshacer.`)) return;
+
+  const res = await apiFetch(`/users?uid=${encodeURIComponent(uid)}`, { method: 'DELETE' });
+
+  // DELETE devuelve 200 con cuerpo vacío o un error
+  if (res && res._error) {
+    showToast(res.message || 'Error al eliminar usuario', 'danger');
+    return;
+  }
+
+  showToast(`Usuario ${name} eliminado`, 'danger');
+  await loadAll();
+}
+
+// ─── EDITAR USUARIO ───────────────────────────────────────────────────────────
+// PATCH /users?uid=<uid>  body: { name?, dept?, lvl?, mail?, joined? }
+function openEditModal(uid) {
+  const u = USERS.find(x => x.id === uid);
+  if (!u) return;
+
+  document.getElementById('edit-uid').value    = u.id;
+  document.getElementById('edit-name').value   = u.name;
+  document.getElementById('edit-mail').value   = u.mail;
+  document.getElementById('edit-dept').value   = u.dept;
+  document.getElementById('edit-lvl').value    = u.lvl;
+  document.getElementById('edit-joined').value = u.joined ? u.joined.slice(0, 10) : '';
+  document.getElementById('edit-modal-subtitle').textContent = `uid: ${u.id}`;
+
+  // Reset extension selector
+  const extSel = document.getElementById('edit-extend');
+  extSel.value = '0';
+  document.getElementById('edit-extend-info').style.display = 'none';
+
+  // Show preview when user picks an extension
+  extSel.onchange = function() {
+    const weeks = parseInt(this.value);
+    const infoBox = document.getElementById('edit-extend-info');
+    const infoTxt = document.getElementById('edit-extend-text');
+    if (!weeks) { infoBox.style.display = 'none'; return; }
+    const cert = latestCert(uid);
+    const base = cert && !cert.revocated ? new Date(cert.not_after) : new Date();
+    if (isNaN(base.getTime())) { infoBox.style.display = 'none'; return; }
+    const newEnd = new Date(base.getTime() + weeks * 7 * 86400000);
+    infoTxt.textContent = `El certificado se extenderá hasta el ${fmtDate(newEnd.toISOString().slice(0,10))}.`;
+    infoBox.style.display = 'flex';
+  };
+
+  openModal('edit');
+}
+
+async function saveEditUser() {
+  const uid    = document.getElementById('edit-uid').value;
+  const name   = document.getElementById('edit-name').value.trim();
+  const mail   = document.getElementById('edit-mail').value.trim();
+  const dept   = document.getElementById('edit-dept').value;
+  const lvl    = document.getElementById('edit-lvl').value;
+  const joined = document.getElementById('edit-joined').value; // YYYY-MM-DD
+  const extWeeks = parseInt(document.getElementById('edit-extend').value) || 0;
+
+  if (!name || !mail) {
+    showToast('Nombre y correo son obligatorios', 'danger');
+    return;
+  }
+
+  const payload = { name, mail, dept, lvl };
+  if (joined) payload.joined = joined;
+
+  console.group(`[Casa Monarca] PATCH /users?uid=${uid}`);
+  console.log('Payload enviado:', JSON.stringify(payload, null, 2));
+
+  const res = await apiFetch(`/users?uid=${encodeURIComponent(uid)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+
+  console.log('Respuesta del backend:', res);
+  console.groupEnd();
+
+  if (res && res._error) {
+    const msg = res.message || 'Error al actualizar usuario';
+    const isLevelError = msg.toLowerCase().includes('level') || msg.toLowerCase().includes('lvl') || msg.toLowerCase().includes('enum');
+    showToast(
+      isLevelError
+        ? `El backend rechazó el nivel "${lvl}". Revisa LevelEnum en api_intf.py`
+        : msg,
+      'danger'
+    );
+    return;
+  }
+
+  // Extend certificate if requested
+  if (extWeeks > 0) {
+    const cert = latestCert(uid);
+    if (cert && !cert.revocated) {
+      const base   = new Date(cert.not_after);
+      const newEnd = new Date(base.getTime() + extWeeks * 7 * 86400000);
+      const naStr  = newEnd.toISOString().slice(0, 10);
+      // TODO: replace with real PATCH /certs/{cert.id} when backend supports it
+      cert.not_after = naStr;
+      showToast(`Usuario actualizado y certificado extendido hasta ${fmtDate(naStr)}`, 'success');
+    } else {
+      showToast('Usuario actualizado (sin certificado activo para extender)', 'success');
+    }
+  } else {
+    showToast(`Usuario actualizado`, 'success');
+  }
+
+  closeModal('edit');
+  await loadAll();
+}
+
+// ─── DESCARGA PEM ─────────────────────────────────────────────────────────────
+function downloadPem(pem, filename) {
+  const blob = new Blob([pem], { type: 'application/x-pem-file' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type}`;
+  void t.offsetWidth;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ─── INICIO ───────────────────────────────────────────────────────────────────
+loadAll();
+</script>
+</body>
+</html>

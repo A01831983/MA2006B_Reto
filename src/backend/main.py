@@ -21,7 +21,7 @@ app = Flask(__name__)
 CORS(app)
 
 api = Api(app, version="1.0", title="Gestor-API", doc=False,
-    description="Gestor API", validate=True
+    description="Gestor API", validate=True, prefix="/api"
 )
 swaggerui_bp = get_swaggerui_blueprint(
     "/docs", "/swagger.json"
