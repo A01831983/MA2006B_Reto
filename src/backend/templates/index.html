@@ -736,14 +736,6 @@
       </div>
     </div>
     <div class="topbar-right">
-      <button class="btn" onclick="showToast('Exportando lista CRL...', '')">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3M3 13h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Exportar CRL
-      </button>
-      <button class="btn" onclick="showToast('Generando reporte de auditoría...', '')">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="3" y="1.5" width="10" height="13" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 6h5M5.5 8.5h3.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
-        Reporte
-      </button>
       <button class="btn btn-primary" onclick="openModal('new')">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
         Nuevo usuario
@@ -942,21 +934,6 @@
             <option value="captura">Nivel 4 — Captura</option>
           </select>
         </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Extender vigencia del certificado</label>
-        <select id="edit-extend" class="form-select">
-          <option value="0">— Sin extensión —</option>
-          <option value="4">+ 4 semanas</option>
-          <option value="8">+ 2 meses</option>
-          <option value="13">+ 3 meses</option>
-          <option value="26">+ 6 meses</option>
-          <option value="52">+ 1 año</option>
-        </select>
-      </div>
-      <div id="edit-extend-info" class="cert-info-box" style="display:none">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:1px"><circle cx="8" cy="8" r="6" stroke="#0F6E56" stroke-width="1.2"/><path d="M8 5v3.5l2 2" stroke="#0F6E56" stroke-width="1.2" stroke-linecap="round"/></svg>
-        <span id="edit-extend-text"></span>
       </div>
     </div>
     <div class="modal-foot">
@@ -1705,25 +1682,6 @@ function openEditModal(uid) {
   document.getElementById('edit-lvl').value    = u.lvl;
   document.getElementById('edit-modal-subtitle').textContent = `uid: ${u.id}`;
 
-  // Reset extension selector
-  const extSel = document.getElementById('edit-extend');
-  extSel.value = '0';
-  document.getElementById('edit-extend-info').style.display = 'none';
-
-  // Show preview when user picks an extension
-  extSel.onchange = function() {
-    const weeks = parseInt(this.value);
-    const infoBox = document.getElementById('edit-extend-info');
-    const infoTxt = document.getElementById('edit-extend-text');
-    if (!weeks) { infoBox.style.display = 'none'; return; }
-    const cert = latestCert(uid);
-    const base = cert && !cert.revocated ? new Date(cert.not_after) : new Date();
-    if (isNaN(base.getTime())) { infoBox.style.display = 'none'; return; }
-    const newEnd = new Date(base.getTime() + weeks * 7 * 86400000);
-    infoTxt.textContent = `El certificado se extenderá hasta el ${fmtDate(newEnd.toISOString().slice(0,10))}.`;
-    infoBox.style.display = 'flex';
-  };
-
   openModal('edit');
 }
 
@@ -1733,7 +1691,6 @@ async function saveEditUser() {
   const mail   = document.getElementById('edit-mail').value.trim();
   const dept   = document.getElementById('edit-dept').value;
   const lvl    = document.getElementById('edit-lvl').value;
-  const extWeeks = parseInt(document.getElementById('edit-extend').value) || 0;
 
   if (!name || !mail) {
     showToast('Nombre y correo son obligatorios', 'danger');
@@ -1765,23 +1722,7 @@ async function saveEditUser() {
     return;
   }
 
-  // Extend certificate if requested
-  if (extWeeks > 0) {
-    const cert = latestCert(uid);
-    if (cert && !cert.revocated) {
-      const base   = new Date(cert.not_after);
-      const newEnd = new Date(base.getTime() + extWeeks * 7 * 86400000);
-      const naStr  = newEnd.toISOString().slice(0, 10);
-      // TODO: replace with real PATCH /certs/{cert.id} when backend supports it
-      cert.not_after = naStr;
-      showToast(`Usuario actualizado y certificado extendido hasta ${fmtDate(naStr)}`, 'success');
-    } else {
-      showToast('Usuario actualizado (sin certificado activo para extender)', 'success');
-    }
-  } else {
-    showToast(`Usuario actualizado`, 'success');
-  }
-
+  showToast(`Usuario actualizado`, 'success');
   closeModal('edit');
   await loadAll();
 }
