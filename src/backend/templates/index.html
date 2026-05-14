@@ -372,6 +372,26 @@
     .filter-tab:hover { background: var(--surface-2); }
     .filter-tab.active { background: var(--green-50); color: var(--green-700); border-color: var(--green-100); font-weight: 500; }
 
+    .level-filter-select {
+      font-family: var(--font);
+      font-size: 12px;
+      padding: 5px 28px 5px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888780' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E") no-repeat right 10px center;
+      background-size: auto;
+      color: var(--text-secondary);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: all 0.12s;
+      height: 30px;
+    }
+
+    .level-filter-select:hover { background-color: var(--surface-2); }
+    .level-filter-select:focus { outline: none; border-color: var(--green-200); box-shadow: 0 0 0 3px rgba(29,158,117,0.08); }
+    .level-filter-select.filtered { background-color: var(--green-50); color: var(--green-700); border-color: var(--green-100); font-weight: 500; }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -774,9 +794,14 @@
             <button class="filter-tab" onclick="setFilter(this,'activo')">Activos</button>
             <button class="filter-tab" onclick="setFilter(this,'revocado')">Revocados</button>
             <button class="filter-tab" onclick="setFilter(this,'expirar')">Por expirar</button>
-            <button class="filter-tab" onclick="setFilter(this,'captura')">Captura</button>
-            <button class="filter-tab" onclick="setFilter(this,'operativo')">Operativos</button>
           </div>
+          <select class="level-filter-select" id="level-filter-select" onchange="setLevelFilter(this.value)">
+            <option value="todos">Todos los niveles</option>
+            <option value="admin">N1 — Administrador</option>
+            <option value="coordinador">N2 — Coordinador</option>
+            <option value="operativo">N3 — Operativo</option>
+            <option value="captura">N4 — Captura</option>
+          </select>
         </div>
       </div>
 
@@ -919,10 +944,6 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Fecha de ingreso</label>
-        <input id="edit-joined" class="form-input" type="date"/>
-      </div>
-      <div class="form-group">
         <label class="form-label">Extender vigencia del certificado</label>
         <select id="edit-extend" class="form-select">
           <option value="0">— Sin extensión —</option>
@@ -1020,6 +1041,7 @@ let CSRS  = [];       // [ CSRStatus ]
 let certsByUid = {};  // uid -> [ CertificateInfo ]
 
 let currentFilter = 'todos';
+let currentLevelFilter = 'todos';
 let currentSearch = '';
 let currentCertUser = null;   // { user, cert }
 
@@ -1193,6 +1215,7 @@ function renderTable() {
 
   const filtered = USERS.filter(u => {
     const matchSearch = !currentSearch ||
+      u.id.toLowerCase().includes(currentSearch) ||
       u.name.toLowerCase().includes(currentSearch) ||
       u.mail.toLowerCase().includes(currentSearch) ||
       u.dept.toLowerCase().includes(currentSearch);
@@ -1200,14 +1223,16 @@ function renderTable() {
     const cert = latestCert(u.id);
     const status = certStatus(cert);
     const matchFilter =
-      currentFilter === 'todos'      ? true :
-      currentFilter === 'activo'     ? status === 'activo' :
-      currentFilter === 'revocado'   ? status === 'revocado' :
-      currentFilter === 'expirar'    ? status === 'expirar' :
-      currentFilter === 'captura'    ? u.lvl === 'captura' :
-      currentFilter === 'operativo' ? u.lvl === 'operativo' : true;
+      currentFilter === 'todos'    ? true :
+      currentFilter === 'activo'   ? status === 'activo' :
+      currentFilter === 'revocado' ? status === 'revocado' :
+      currentFilter === 'expirar'  ? status === 'expirar' : true;
 
-    return matchSearch && matchFilter;
+    const matchLevel =
+      currentLevelFilter === 'todos' ? true :
+      u.lvl === currentLevelFilter;
+
+    return matchSearch && matchFilter && matchLevel;
   });
 
   if (filtered.length === 0) {
@@ -1287,6 +1312,16 @@ function setFilter(el, filter) {
   document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   currentFilter = filter;
+  renderTable();
+}
+
+function setLevelFilter(val) {
+  currentLevelFilter = val;
+  const sel = document.getElementById('level-filter-select');
+  if (sel) {
+    if (val === 'todos') sel.classList.remove('filtered');
+    else sel.classList.add('filtered');
+  }
   renderTable();
 }
 
@@ -1668,7 +1703,6 @@ function openEditModal(uid) {
   document.getElementById('edit-mail').value   = u.mail;
   document.getElementById('edit-dept').value   = u.dept;
   document.getElementById('edit-lvl').value    = u.lvl;
-  document.getElementById('edit-joined').value = u.joined ? u.joined.slice(0, 10) : '';
   document.getElementById('edit-modal-subtitle').textContent = `uid: ${u.id}`;
 
   // Reset extension selector
@@ -1699,7 +1733,6 @@ async function saveEditUser() {
   const mail   = document.getElementById('edit-mail').value.trim();
   const dept   = document.getElementById('edit-dept').value;
   const lvl    = document.getElementById('edit-lvl').value;
-  const joined = document.getElementById('edit-joined').value; // YYYY-MM-DD
   const extWeeks = parseInt(document.getElementById('edit-extend').value) || 0;
 
   if (!name || !mail) {
@@ -1708,7 +1741,6 @@ async function saveEditUser() {
   }
 
   const payload = { name, mail, dept, lvl };
-  if (joined) payload.joined = joined;
 
   console.group(`[Casa Monarca] PATCH /users?uid=${uid}`);
   console.log('Payload enviado:', JSON.stringify(payload, null, 2));
