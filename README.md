@@ -6,7 +6,7 @@
 | Alberto Boughton Reyes            | A01178500 |
 | Diego Octavio Arias Incháustegui  | A00838285 |
 | Fernando Daniel Saucedo Hernández | A01385490 |
-| Valencia Arciga Valencia          | A01737555 |
+| Valeria Arciga Valencia           | A01737555 |
 | Ximena Montes Bautista            | A01737949 |
 | Henning Arvid Ladewig             | A01831983 |
 
@@ -24,16 +24,18 @@ Se recomienda usar Python 3.6.13 porque es la versión utilizada para las prueba
 Ejecuta el comando `pip install -r requirements.txt` en la terminal.
 
 ## Ejecución
-Para iniciar el backend, solo se tiene que ejecutar
-`python run.py --db <database file> --cert <certificate file> --key <private key file>`.
-Después, el backend está disponible en `http://localhost:8000`.
-
-### Generación de ejemplo
+### Generación de ejemplos
 Para generar datos de ejemplos con que se puede iniciar el servidor, ejecuta
-`python examples/create_dummy_data.py`.
+- `python examples/create_dummy_data.py`.
 Entonces, entre otros, hay los archivos `examples/dummy.json` como banco de datos,
 `examples/srv_cert.pem` como certificado del servidor, y `examples/srv_key.pem` como clave
 privada del servidor.
 
+### Ejecución del servidor
+Para iniciar el servidor, solo se tiene que ejecutar
+`python run.py --db <database file> --cert <certificate file> --key <private key file>`.
+Entonces la página web está disponible en `http://localhost:8000/`.
+Para fines de prueba, se puede usar los archivos mencionados (generados por `examples/create_dummy_data.py`).
+
 ### Interfaz para debugging y documentación
-Hay una interfaz para debugging que también incluye documentación en `http://localhost:8000/docs`.
+Hay una interfaz para debugging que también incluye documentación en `http://localhost:8000/api/docs`.
