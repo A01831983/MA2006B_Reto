@@ -118,7 +118,9 @@ def change_users(uid: str, new: dict):
                 + " 'joined'"
 
     if "mail" in new.keys():
-        if len(list_users(mail=new["mail"])) > 1:
+        usrs = list_users(mail=new["mail"])
+
+        if (len(usr) == 1 and usr["id"] != uid) or len(usr) > 1:
             raise ValueError("email address must be unique")
 
     update = _ser_usr(new, check=False)
