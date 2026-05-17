@@ -26,7 +26,7 @@ Ejecuta el comando `pip install -r requirements.txt` en la terminal.
 ## Ejecución
 ### Generación de ejemplos
 Para generar datos de ejemplos con que se puede iniciar el servidor, ejecuta
-- `python examples/create_dummy_data.py`.
+`python examples/create_dummy_data.py`.
 Entonces, entre otros, hay los archivos `examples/dummy.json` como banco de datos,
 `examples/srv_cert.pem` como certificado del servidor, y `examples/srv_key.pem` como clave
 privada del servidor.
