@@ -164,7 +164,7 @@ def _des_crt(c: dict):
 
 def list_certs(cid: str = "", uid: str = "", valid: bool = None,
                not_before: date = None, not_after: date = None,
-               revoked: bool = None):
+               revoked: bool = None, pb: bytes = b""):
     Crt = tinydb.Query()
 
     # Filter by cid, uid, revoked
@@ -191,7 +191,10 @@ def list_certs(cid: str = "", uid: str = "", valid: bool = None,
         (not_before is None or c["not_before"] >= not_before) and \
         (not_after is None or c["not_after"] <= not_after)
 
-    return list(filter(date_filter, ret))
+    # Filter by public bytes
+    pb_filter = lambda c: pb in c["cert"].public_bytes(serialization.Encoding.PEM)
+
+    return list(filter(pb_filter, filter(date_filter, ret)))
 
 def add_cert(uid: str, cert: x509.Certificate):
     cid = random.randint(0, 2**31-1)

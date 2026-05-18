@@ -11,6 +11,7 @@ from datetime import date, datetime
 
 from flask import jsonify, render_template, Response
 from flask_restx import Api, Resource, fields, reqparse
+from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 import validators
 
@@ -321,18 +322,57 @@ def register(api, db_filename):
 
             return ret
 
-        @api.doc(params={
-            "uid": {
-                "description": "The ID of the user which to issue a certificate for",
-                "required": True, "type": str},
-            "not_before": {"description": "Validity period", "required": True,
-                           "type": str, "format": "date"},
-            "not_after": {"description": "Validity period", "required": True,
-                          "type": str, "format": "date"}
-        }, description="Create new certificate for a specific user")
-        @api.expect(CertCreate_m)
-        @api.marshal_with(CertCreateReply_m)
+        @api.expect(RawCert_m)
+        # @api.marshal_with(CertCreateReply_m)
         def post(self):
+            def get_admin_certs() -> [x509.Certificate]:
+                admins = map(lambda u: u["id"],
+                             db.list_users(lvl=LevelEnum.Administrador.value))
+
+                admins_certs = map(lambda uid: db.list_certs(uid=uid), admins)
+
+                admin_certs = [cert for certs in admins_certs for cert in certs]
+
+                admin_certs = list(map(lambda c: c["cert"], admin_certs))
+
+                return admin_certs
+
+            cert = api.payload["raw"]
+
+            try:
+                cert = x509.load_pem_x509_certificate(cert.encode())
+            except ValueError:
+                api.abort(400, "Invalid certificate format")
+
+            usr = ccore.extract_user_data(cert)
+
+            if isinstance(usr, str):
+                api.abort(400, usr)
+
+            usrs = db.list_users(**usr)
+
+            if len(usrs) != 1:
+                api.abort(400, _not_unique_err("The certificate's details",
+                                               "user", len(usrs)))
+
+            found_usr = usrs[0]
+            usr["id"] = usr["uid"]
+            del usr["uid"]
+
+            if not all([found_usr[k] == usr[k] for k in usr.keys()]):
+                api.abort(400, "Certificate details must match user details exactly")
+
+            if not ccore.verify_cert(cert, get_admin_certs()):
+                api.abort(400, "Certificate is not signed by a registered administrator")
+
+            # Prevent duplicate certificates
+            if len(db.list_certs(pb=cert.public_bytes(serialization.Encoding.PEM))) != 0:
+                api.abort(400, "Certificate already registered")
+
+            db.add_cert(usr["id"], cert)
+
+            return
+
             args = cert_create_p.parse_args()
 
             # Validate dates
