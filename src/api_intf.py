@@ -323,7 +323,6 @@ def register(api, db_filename):
             return ret
 
         @api.expect(RawCert_m)
-        # @api.marshal_with(CertCreateReply_m)
         def post(self):
             def get_admin_certs() -> [x509.Certificate]:
                 admins = map(lambda u: u["id"],
@@ -370,62 +369,6 @@ def register(api, db_filename):
                 api.abort(400, "Certificate already registered")
 
             db.add_cert(usr["id"], cert)
-
-            return
-
-            args = cert_create_p.parse_args()
-
-            # Validate dates
-            try:
-                not_before = _des_date(args["not_before"])
-            except ValueError:
-                api.abort(400, _des_date_err("not_before", args["not_before"]))
-
-            try:
-                not_after = _des_date(args["not_after"])
-            except ValueError:
-                api.abort(400, _des_date_err("not_after", args["not_after"]))
-
-            today = date.today()
-            if not_after < not_before:
-                api.abort(400, "Validity period must start before it ends")
-            if not_before < today:
-                api.abort(400, "Validity period must not start before current date")
-            if not_after < today:
-                api.abort(400, "Validity period must end after current date")
-            
-            # Validate user
-            uid_err = "uid must exactly match the ID of one user"
-
-            usrs = db.list_users(uid=args["uid"])
-            if len(usrs) != 1:
-                api.abort(400, _not_unique_err("uid", "user", len(usrs)))
-
-            usr = usrs[0]
-            if usr["id"] != args["uid"]: api.abort(400, uid_err)
-
-            # Validate cryptographical parameters
-            key_size = api.payload["key_size"]
-            if key_size < 2048:
-                api.abort(400, "Key size too small (minimum 2048 bits)")
-
-            usr_without_id_joined = usr.copy()
-            del usr_without_id_joined["id"]
-            del usr_without_id_joined["joined"]
-
-            try:
-                cert, key = ccore.create_cert(
-                    uid=usr["id"], **usr_without_id_joined, not_before=not_before,
-                    not_after=not_after, pwd=api.payload["pwd"], key_size=key_size)
-            except Exception as e:
-                api.error(400, f"Error creating certificate: {e}")
-
-            try:
-                cid = db.add_cert(usr["id"], cert)
-            except Exception as e:
-                api.abort(400, f"Error adding certificate to database: {e}")
-
-            return {"id": str(cid), "raw": key.decode()}
 
     @api.route("/certs/<string:cid>")
     @api.doc(description="Retrieve raw PEM data of one specific certificate")
