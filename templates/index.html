@@ -658,6 +658,50 @@
       background: var(--surface);
     }
 
+    /* ─── FIELD ERRORS ─── */
+    .form-input.error, .form-select.error {
+      border-color: var(--red-500) !important;
+      box-shadow: 0 0 0 3px rgba(226,75,74,0.1) !important;
+    }
+    .field-error {
+      font-size: 11.5px; color: var(--red-700);
+      margin-top: 2px; display: none;
+    }
+    .field-error.show { display: block; }
+
+    /* ─── PEM UPLOAD DROP ZONE ─── */
+    .pem-dropzone {
+      border: 1.5px dashed var(--border-md);
+      border-radius: var(--radius-md);
+      padding: 18px 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--surface-2);
+      position: relative;
+    }
+    .pem-dropzone:hover, .pem-dropzone.drag-over {
+      border-color: var(--green-500);
+      background: var(--green-50);
+    }
+    .pem-dropzone input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .pem-dropzone-icon { color: var(--text-hint); margin-bottom: 6px; }
+    .pem-dropzone-label { font-size: 13px; color: var(--text-secondary); }
+    .pem-dropzone-sub { font-size: 11.5px; color: var(--text-hint); margin-top: 3px; }
+    .pem-file-chosen {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--green-50); border: 1px solid var(--green-100);
+      border-radius: var(--radius-md); padding: 8px 12px; margin-top: 8px;
+      font-size: 12.5px; color: var(--green-900);
+    }
+    .pem-file-chosen button {
+      margin-left: auto; background: none; border: none; cursor: pointer;
+      color: var(--text-hint); font-size: 13px; padding: 0 2px;
+    }
+    .pem-file-chosen button:hover { color: var(--red-700); }
+
     /* ─── TOAST ─── */
     .toast {
       position: fixed; bottom: 24px; right: 24px;
@@ -825,7 +869,7 @@
     <div class="modal-head">
       <div>
         <div class="modal-title">Registrar nuevo usuario</div>
-        <div class="modal-subtitle" id="new-modal-subtitle">Se generará un certificado X.509 firmado por Casa Monarca CA</div>
+        <div class="modal-subtitle" id="new-modal-subtitle">Completa los datos del nuevo colaborador</div>
       </div>
       <button class="icon-btn" onclick="closeModal('new')">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -834,11 +878,13 @@
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">Nombre completo</label>
-        <input id="form-name" class="form-input" placeholder="Ej. María García López"/>
+        <input id="form-name" class="form-input" placeholder="Ej. María García López" oninput="clearFieldError('form-name','form-name-error')"/>
+        <span id="form-name-error" class="field-error"></span>
       </div>
       <div class="form-group">
         <label class="form-label">Correo institucional</label>
-        <input id="form-mail" class="form-input" placeholder="usuario@casamonarca.mx" type="email"/>
+        <input id="form-mail" class="form-input" placeholder="usuario@casamonarca.mx" type="email" oninput="clearFieldError('form-mail','form-mail-error')"/>
+        <span id="form-mail-error" class="field-error"></span>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -855,7 +901,7 @@
         <div class="form-group">
           <label class="form-label">Nivel de acceso</label>
           <!-- valores = Levels enum de api_intf.py -->
-          <select id="form-level" class="form-select" onchange="updateNewModalCertVisibility()">
+          <select id="form-level" class="form-select">
             <option value="admin">Nivel 1 — Administrador</option>
             <option value="coordinador" selected>Nivel 2 — Coordinador</option>
             <option value="operativo">Nivel 3 — Operativo/a</option>
@@ -863,27 +909,13 @@
           </select>
         </div>
       </div>
-      <div id="form-cert-section" style="display:flex;flex-direction:column;gap:16px">
-        <div class="form-group">
-          <label class="form-label">Vigencia del certificado</label>
-          <select id="form-validity" class="form-select">
-            <option value="4">4 semanas (predeterminado)</option>
-            <option value="13">3 meses</option>
-            <option value="26">6 meses</option>
-            <option value="52">1 año</option>
-          </select>
-        </div>
-        <div class="cert-info-box">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:1px"><path d="M8 2l2 4h4l-3 2.5 1 4L8 10l-4 2.5 1-4L2 6h4L8 2z" stroke="#0F6E56" stroke-width="1.2" fill="none"/></svg>
-          <span>Se generará un par de claves RSA-4096. La clave privada se entregará cifrada al usuario. El certificado será firmado con SHA-256 por la CA raíz de Casa Monarca.</span>
-        </div>
-      </div>
+
     </div>
     <div class="modal-foot">
       <button class="btn" onclick="closeModal('new')">Cancelar</button>
       <button class="btn btn-primary" id="new-modal-submit-btn" onclick="createUser()">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="3" y="1.5" width="10" height="13" rx="1.5" stroke="white" stroke-width="1.2"/><path d="M6 8.5l2 2 3-3" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span id="new-modal-submit-label">Generar certificado</span>
+        <span id="new-modal-submit-label">Registrar usuario</span>
       </button>
     </div>
   </div>
@@ -906,11 +938,13 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Nombre completo</label>
-          <input id="edit-name" class="form-input" placeholder="Ej. María García López"/>
+          <input id="edit-name" class="form-input" placeholder="Ej. María García López" oninput="clearFieldError('edit-name','edit-name-error')"/>
+          <span id="edit-name-error" class="field-error"></span>
         </div>
         <div class="form-group">
           <label class="form-label">Correo institucional</label>
-          <input id="edit-mail" class="form-input" placeholder="usuario@casamonarca.mx" type="email"/>
+          <input id="edit-mail" class="form-input" placeholder="usuario@casamonarca.mx" type="email" oninput="clearFieldError('edit-mail','edit-mail-error')"/>
+          <span id="edit-mail-error" class="field-error"></span>
         </div>
       </div>
       <div class="form-row">
@@ -1310,9 +1344,18 @@ function setNav(el) {
 // ─── MODALES ──────────────────────────────────────────────────────────────────
 function openModal(type) {
   document.getElementById(`overlay-${type}`).classList.add('open');
-  if (type === 'new') updateNewModalCertVisibility();
 }
-function closeModal(type) { document.getElementById(`overlay-${type}`).classList.remove('open'); }
+function closeModal(type) {
+  document.getElementById(`overlay-${type}`).classList.remove('open');
+  // Reset field errors on close
+  if (type === 'new') {
+    clearFieldError('form-name', 'form-name-error');
+    clearFieldError('form-mail', 'form-mail-error');
+  } else if (type === 'edit') {
+    clearFieldError('edit-name', 'edit-name-error');
+    clearFieldError('edit-mail', 'edit-mail-error');
+  }
+}
 function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id.replace('overlay-','')); }
 
 // ─── VER CERTIFICADO ──────────────────────────────────────────────────────────
@@ -1470,39 +1513,52 @@ async function revokeFromModal() {
 function updateNewModalCertVisibility() {
   const lvl = document.getElementById('form-level').value;
   const noCert = (lvl === 'captura' || lvl === 'operativo');
-  document.getElementById('form-cert-section').style.display = noCert ? 'none' : '';
-  const roleLabel = lvl === 'operativo' ? 'Operativos' : lvl === 'captura' ? 'Captura' : '';
   document.getElementById('new-modal-subtitle').textContent = noCert
-    ? `${roleLabel} no requieren certificado digital`
-    : 'Se generará un certificado X.509 firmado por Casa Monarca CA';
-  document.getElementById('new-modal-submit-label').textContent = noCert
-    ? 'Registrar usuario'
-    : 'Generar certificado';
+    ? `${lvl === 'operativo' ? 'Operativos' : 'Captura'} no requieren certificado digital`
+    : 'El certificado se cargará por separado una vez generado externamente';
+  document.getElementById('new-modal-submit-label').textContent = 'Registrar usuario';
 }
 
 // ─── CREAR USUARIO ────────────────────────────────────────────────────────────
 // El backend espera POST /users con: { name, dept, lvl, mail, joined }
 //   lvl acepta: "admin" | "coordinador" | "operativo" | "captura"
-//   - "joined" en formato YYYY-MM-DD
-//   - El backend genera el id; lo devuelve en { id: "..." }
-// Luego POST /certs con query params: uid, not_before, not_after (YYYY-MM-DD)
-//   y body: { key_size, pwd }
+//   joined en formato YYYY-MM-DD — el backend genera el id y lo devuelve en { id: "..." }
 async function createUser() {
   const name  = document.getElementById('form-name').value.trim();
-  const mail  = document.getElementById('form-mail').value.trim();
+  const mail  = document.getElementById('form-mail').value.trim().toLowerCase();
   const dept  = document.getElementById('form-dept').value;
   const lvl   = document.getElementById('form-level').value;
-  const weeks = parseInt(document.getElementById('form-validity')?.value || '4');
 
-  if (!name || !mail) {
-    showToast('Completa nombre y correo', 'danger');
-    return;
+  let hasError = false;
+
+  // Validar nombre
+  if (!name) {
+    showFieldError('form-name', 'form-name-error', 'El nombre es obligatorio.');
+    hasError = true;
   }
+
+  // Validar correo — vacío
+  if (!mail) {
+    showFieldError('form-mail', 'form-mail-error', 'El correo es obligatorio.');
+    hasError = true;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
+    // Formato inválido
+    showFieldError('form-mail', 'form-mail-error', 'El correo no tiene un formato válido (ej: usuario@dominio.mx).');
+    hasError = true;
+  } else {
+    // Duplicado (validación local antes de tocar el backend)
+    const duplicate = USERS.find(u => u.mail.toLowerCase() === mail);
+    if (duplicate) {
+      showFieldError('form-mail', 'form-mail-error', `Este correo ya está registrado para ${duplicate.name}.`);
+      hasError = true;
+    }
+  }
+
+  if (hasError) return;
 
   // Fecha de ingreso: hoy en YYYY-MM-DD
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  // 1. Crear usuario  →  POST /users
   const payload = { name, dept, lvl, mail, joined: todayStr };
   console.group('[Casa Monarca] POST /users');
   console.log('Payload enviado:', JSON.stringify(payload, null, 2));
@@ -1516,140 +1572,242 @@ async function createUser() {
   console.groupEnd();
 
   if (!userReply || userReply._error || !userReply.id) {
-    // Si el backend rechazó el nivel, el mensaje lo dirá claramente
-    const msg = userReply?.message || 'Error al crear usuario';
-    const isLevelError = msg.toLowerCase().includes('level') || msg.toLowerCase().includes('lvl') || msg.toLowerCase().includes('enum');
-    showToast(
-      isLevelError
-        ? `El backend rechazó el nivel "${lvl}". Revisa LevelEnum en api_intf.py`
-        : msg,
-      'danger'
-    );
+    const msg = userReply?.message || '';
+    // Traducir errores conocidos del backend a mensajes amigables
+    if (msg.toLowerCase().includes('mail') || msg.toLowerCase().includes('email') || msg.toLowerCase().includes('correo')) {
+      showFieldError('form-mail', 'form-mail-error', 'Este correo ya está en uso o no es válido. Verifica e intenta de nuevo.');
+    } else if (msg.toLowerCase().includes('level') || msg.toLowerCase().includes('lvl') || msg.toLowerCase().includes('enum')) {
+      showToast('El nivel de acceso seleccionado no es válido. Recarga la página e intenta de nuevo.', 'danger');
+    } else {
+      showToast('No se pudo registrar al usuario. Verifica los datos e intenta de nuevo.', 'danger');
+    }
     return;
   }
 
   const uid = userReply.id;
   console.log(`[Casa Monarca] Usuario creado con uid=${uid}, lvl=${lvl}`);
 
-  // 2. Crear certificado solo si el nivel lo requiere (no para captura ni operativos)
-  if (lvl === 'captura' || lvl === 'operativo') {
-    closeModal('new');
-    document.getElementById('form-name').value = '';
-    document.getElementById('form-mail').value = '';
-    const roleLabel = lvl === 'operativo' ? 'Operativo/a' : 'Captura';
-    showToast(`${roleLabel} ${name} registrado/a (sin certificado) — uid: ${uid}`, 'success');
-    await loadAll();
-    return;
-  }
-
-  // 2. Crear certificado  →  POST /certs?uid=...&not_before=...&not_after=...
-  //    Body: { key_size: 4096, pwd: "<contrasena única por certificado>" }
-  const notBefore = new Date();
-  const notAfter  = new Date(notBefore.getTime() + weeks * 7 * 86400000);
-  const nbStr     = notBefore.toISOString().slice(0, 10);
-  const naStr     = notAfter.toISOString().slice(0, 10);
-
-  // Generar contraseña única por certificado (nunca reutilizar entre usuarios)
-  const certPwd = generateCertPassword(uid);
-  console.log(`[Casa Monarca] Contraseña del certificado para uid=${uid}: ${certPwd}`);
-
-  const certReply = await apiFetch(
-    `/certs?uid=${encodeURIComponent(uid)}&not_before=${nbStr}&not_after=${naStr}`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ key_size: 4096, pwd: certPwd }),
-    }
-  );
-
   closeModal('new');
   document.getElementById('form-name').value = '';
   document.getElementById('form-mail').value = '';
+  clearFieldError('form-name', 'form-name-error');
+  clearFieldError('form-mail', 'form-mail-error');
 
-  if (!certReply || certReply._error) {
-    showToast(`Usuario ${name} creado, pero error al emitir certificado`, 'danger');
-  } else {
-    showToast(`Usuario ${name} creado y certificado emitido`, 'success');
-    if (certReply.raw) {
-      downloadPem(certReply.raw, `clave_privada_${uid}.pem`);
-    }
-    // Mostrar la contraseña única al administrador para que la entregue al usuario
-    showCertPasswordDialog(name, certPwd);
-  }
-
-  // 3. Recargar desde el backend para reflejar estado real
   await loadAll();
+
+  // Mostrar diálogo de carga de certificado (solo si el nivel requiere cert)
+  const lvlMeta = LEVEL_META[lvl];
+  if (lvlMeta && lvlMeta.hasCert) {
+    showCertUploadNotice(name, uid);
+  } else {
+    showToast(`Usuario ${name} registrado correctamente`, 'success');
+  }
 }
 
-// ─── CONTRASEÑA DE CERTIFICADO ────────────────────────────────────────────────
-// Genera una contraseña única por certificado usando crypto.getRandomValues
-// Nunca se reutiliza entre usuarios ni entre emisiones del mismo usuario
-function generateCertPassword(uid) {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%&*';
-  const array = new Uint8Array(20);
-  crypto.getRandomValues(array);
-  return Array.from(array).map(b => chars[b % chars.length]).join('');
-}
+// ─── CARGA DE CERTIFICADO PEM ─────────────────────────────────────────────────
+// Permite al administrador cargar el archivo .pem firmado para un usuario.
+// Envía POST /certs con body { uid, raw: "<contenido PEM>" }
+let _pemUploadFile = null;
 
-function showCertPasswordDialog(name, pwd) {
-  // Always remove any existing instance before creating a fresh one
-  const existing = document.getElementById('pwd-dialog');
+function showCertUploadNotice(name, uid) {
+  const existing = document.getElementById('cert-notice-dialog');
   if (existing) existing.remove();
+  _pemUploadFile = null;
 
   const dlg = document.createElement('div');
-  dlg.id = 'pwd-dialog';
+  dlg.id = 'cert-notice-dialog';
   dlg.style.cssText = `
     position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;
     background:rgba(0,0,0,0.45);backdrop-filter:blur(4px)`;
 
-  const close = () => dlg.remove();
-
-  // Clicking the backdrop closes the dialog
+  const close = () => { dlg.remove(); _pemUploadFile = null; };
   dlg.addEventListener('click', e => { if (e.target === dlg) close(); });
 
   dlg.innerHTML = `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;
-                padding:28px 28px 22px;max-width:420px;width:90%;box-shadow:var(--shadow-lg)">
-      <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:6px">
-        Contraseña del certificado
+                padding:28px 28px 22px;max-width:460px;width:90%;box-shadow:var(--shadow-lg)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--green-50);
+                    display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+            <path d="M13 5.5L7 11.5L3 7.5" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div style="font-size:14px;font-weight:700;color:var(--text-primary)">
+          Usuario registrado — Cargar certificado
+        </div>
       </div>
-      <div style="font-size:12.5px;color:var(--text-secondary);margin-bottom:18px">
-        Certificado generado para ${name}. Contraseña unica para descifrar la clave privada:
+      <div style="font-size:12.5px;color:var(--text-secondary);margin-bottom:14px;line-height:1.6">
+        El usuario <strong>${name}</strong> fue registrado correctamente.<br>
+        Puedes cargar ahora el certificado <code style="font-family:var(--font-mono);font-size:11.5px;background:var(--surface-3);padding:1px 5px;border-radius:3px">.pem</code> firmado por la CA raíz,
+        o hacerlo más tarde desde el panel.
       </div>
-      <div style="background:var(--gray-50);border:1px solid var(--border);border-radius:8px;
-                  padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:18px">
-        <code id="pwd-dialog-value" style="font-family:var(--font-mono);font-size:13.5px;
-              color:var(--green-900);font-weight:600;flex:1;word-break:break-all">${pwd}</code>
-        <button id="pwd-copy-btn"
-          style="background:var(--green-50);border:1px solid var(--green-200);border-radius:6px;
-                 padding:5px 10px;font-size:11.5px;font-weight:600;color:var(--green-900);cursor:pointer;
-                 white-space:nowrap">
+
+      <!-- Drop zone -->
+      <div class="pem-dropzone" id="pem-dropzone"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handlePemDrop(event,'${uid}')">
+        <input type="file" accept=".pem,.crt,.cer" onchange="handlePemFile(this.files[0],'${uid}')"/>
+        <div class="pem-dropzone-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 16V8M8 12l4-4 4 4" stroke="var(--text-hint)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="3" y="3" width="18" height="18" rx="4" stroke="var(--border-md)" stroke-width="1.2" fill="none"/>
+          </svg>
+        </div>
+        <div class="pem-dropzone-label">Arrastra el archivo .pem aquí</div>
+        <div class="pem-dropzone-sub">o haz clic para seleccionar · .pem · .crt · .cer</div>
+      </div>
+
+      <!-- Archivo seleccionado -->
+      <div id="pem-chosen" style="display:none" class="pem-file-chosen">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 8.5l3.5 3.5 5-6" stroke="#1D9E75" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="pem-chosen-name" style="font-size:12.5px;color:var(--green-900);font-family:var(--font-mono)"></span>
+        <button title="Quitar archivo" onclick="clearPemFile()">✕</button>
+      </div>
+
+      <!-- Estado de subida -->
+      <div id="pem-upload-status" style="display:none;margin-top:8px;font-size:12px;padding:7px 10px;border-radius:6px"></div>
+
+      <!-- UID ref -->
+      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;
+                  padding:8px 12px;margin-top:14px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:11.5px;color:var(--text-secondary)">UID:</span>
+        <code id="cert-notice-uid" style="font-family:var(--font-mono);font-size:12px;
+              color:var(--text-primary);font-weight:600;flex:1">${uid}</code>
+        <button id="cert-notice-copy"
+          style="background:var(--green-50);border:1px solid var(--green-200);border-radius:5px;
+                 padding:4px 9px;font-size:11px;font-weight:600;color:var(--green-900);cursor:pointer">
           Copiar
         </button>
       </div>
-      <div style="font-size:11.5px;color:var(--text-hint);margin-bottom:20px;line-height:1.5">
-        Esta contraseña no se volvera a mostrar. Entreguela al usuario de forma segura
-        antes de cerrar esta ventana.
-      </div>
-      <div style="display:flex;justify-content:flex-end">
-        <button id="pwd-close-btn"
-          style="background:var(--green-600);color:#fff;border:none;border-radius:8px;
-                 padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer">
-          Entendido, cerrar
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
+        <button id="cert-notice-skip"
+          style="background:var(--surface);border:1px solid var(--border-md);border-radius:8px;
+                 padding:8px 16px;font-size:13px;font-weight:500;color:var(--text-secondary);cursor:pointer">
+          Cargar más tarde
+        </button>
+        <button id="cert-upload-btn"
+          style="background:var(--green-500);color:#fff;border:1px solid var(--green-700);border-radius:8px;
+                 padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;opacity:0.45;pointer-events:none"
+          onclick="uploadPemCert('${uid}','${name}')">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="vertical-align:-2px;margin-right:5px">
+            <path d="M8 10V4M5 7l3-3 3 3M3 13h10" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Subir certificado
         </button>
       </div>
     </div>`;
 
   document.body.appendChild(dlg);
 
-  document.getElementById('pwd-close-btn').addEventListener('click', close);
-  document.getElementById('pwd-copy-btn').addEventListener('click', () => {
-    navigator.clipboard.writeText(pwd);
-    document.getElementById('pwd-copy-btn').textContent = 'Copiado';
-    setTimeout(() => {
-      const btn = document.getElementById('pwd-copy-btn');
-      if (btn) btn.textContent = 'Copiar';
-    }, 2000);
+  document.getElementById('cert-notice-skip').addEventListener('click', close);
+  document.getElementById('cert-notice-copy').addEventListener('click', () => {
+    navigator.clipboard.writeText(uid);
+    const btn = document.getElementById('cert-notice-copy');
+    if (btn) { btn.textContent = 'Copiado'; setTimeout(() => { if (btn) btn.textContent = 'Copiar'; }, 2000); }
   });
+}
+
+function handlePemDrop(event, uid) {
+  event.preventDefault();
+  document.getElementById('pem-dropzone').classList.remove('drag-over');
+  const file = event.dataTransfer.files[0];
+  if (file) handlePemFile(file, uid);
+}
+
+function handlePemFile(file, uid) {
+  if (!file) return;
+  // Accept .pem / .crt / .cer files
+  const validExts = ['.pem', '.crt', '.cer'];
+  const nameLower = file.name.toLowerCase();
+  const isValid = validExts.some(ext => nameLower.endsWith(ext));
+  if (!isValid) {
+    setPemStatus('Solo se aceptan archivos .pem, .crt o .cer', 'error');
+    return;
+  }
+  _pemUploadFile = file;
+  document.getElementById('pem-chosen').style.display = 'flex';
+  document.getElementById('pem-chosen-name').textContent = file.name;
+  document.getElementById('pem-dropzone').style.display = 'none';
+  document.getElementById('pem-upload-status').style.display = 'none';
+  // Enable upload button
+  const btn = document.getElementById('cert-upload-btn');
+  if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+}
+
+function clearPemFile() {
+  _pemUploadFile = null;
+  document.getElementById('pem-chosen').style.display = 'none';
+  document.getElementById('pem-dropzone').style.display = '';
+  document.getElementById('pem-upload-status').style.display = 'none';
+  const btn = document.getElementById('cert-upload-btn');
+  if (btn) { btn.style.opacity = '0.45'; btn.style.pointerEvents = 'none'; }
+}
+
+function setPemStatus(msg, type) {
+  const el = document.getElementById('pem-upload-status');
+  if (!el) return;
+  el.style.display = '';
+  const colors = {
+    error:   { bg: 'var(--red-50)',   color: 'var(--red-700)',   border: 'var(--red-500)' },
+    success: { bg: 'var(--green-50)', color: 'var(--green-700)', border: 'var(--green-200)' },
+    loading: { bg: 'var(--blue-50)',  color: 'var(--blue-700)',  border: 'var(--blue-100)' },
+  };
+  const c = colors[type] || colors.loading;
+  el.style.background = c.bg;
+  el.style.color = c.color;
+  el.style.border = `1px solid ${c.border}`;
+  el.textContent = msg;
+}
+
+async function uploadPemCert(uid, name) {
+  if (!_pemUploadFile) return;
+  const btn = document.getElementById('cert-upload-btn');
+  if (btn) { btn.style.opacity = '0.6'; btn.style.pointerEvents = 'none'; }
+
+  setPemStatus('Leyendo archivo…', 'loading');
+
+  let raw;
+  try {
+    raw = await _pemUploadFile.text();
+  } catch (e) {
+    setPemStatus('No se pudo leer el archivo. Inténtalo de nuevo.', 'error');
+    if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+    return;
+  }
+
+  // Basic PEM sanity check
+  if (!raw.includes('-----BEGIN') || !raw.includes('-----END')) {
+    setPemStatus('El archivo no parece un certificado PEM válido (falta cabecera BEGIN/END).', 'error');
+    if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+    return;
+  }
+
+  setPemStatus('Subiendo certificado…', 'loading');
+
+  const res = await apiFetch('/certs', {
+    method: 'POST',
+    body: JSON.stringify({ uid, raw }),
+  });
+
+  if (!res || res._error) {
+    const msg = res?.message || 'Error al subir el certificado.';
+    setPemStatus(msg, 'error');
+    if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+    return;
+  }
+
+  setPemStatus(`Certificado de ${name} cargado correctamente.`, 'success');
+  showToast(`Certificado de ${name} registrado`, 'success');
+
+  // Disable upload btn, auto-close after a moment
+  setTimeout(() => {
+    const dlg = document.getElementById('cert-notice-dialog');
+    if (dlg) dlg.remove();
+    loadAll();
+  }, 1800);
 }
 
 // ─── ELIMINAR USUARIO ─────────────────────────────────────────────────────────
@@ -1688,14 +1846,33 @@ function openEditModal(uid) {
 async function saveEditUser() {
   const uid    = document.getElementById('edit-uid').value;
   const name   = document.getElementById('edit-name').value.trim();
-  const mail   = document.getElementById('edit-mail').value.trim();
+  const mail   = document.getElementById('edit-mail').value.trim().toLowerCase();
   const dept   = document.getElementById('edit-dept').value;
   const lvl    = document.getElementById('edit-lvl').value;
 
-  if (!name || !mail) {
-    showToast('Nombre y correo son obligatorios', 'danger');
-    return;
+  let hasError = false;
+
+  if (!name) {
+    showFieldError('edit-name', 'edit-name-error', 'El nombre es obligatorio.');
+    hasError = true;
   }
+
+  if (!mail) {
+    showFieldError('edit-mail', 'edit-mail-error', 'El correo es obligatorio.');
+    hasError = true;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
+    showFieldError('edit-mail', 'edit-mail-error', 'El correo no tiene un formato válido (ej: usuario@dominio.mx).');
+    hasError = true;
+  } else {
+    // Verificar duplicado excluyendo al propio usuario que se está editando
+    const duplicate = USERS.find(u => u.mail.toLowerCase() === mail && u.id !== uid);
+    if (duplicate) {
+      showFieldError('edit-mail', 'edit-mail-error', `Este correo ya está registrado para ${duplicate.name}.`);
+      hasError = true;
+    }
+  }
+
+  if (hasError) return;
 
   const payload = { name, mail, dept, lvl };
 
@@ -1712,13 +1889,15 @@ async function saveEditUser() {
 
   if (res && res._error) {
     const msg = res.message || 'Error al actualizar usuario';
+    const isMailError  = msg.toLowerCase().includes('mail') || msg.toLowerCase().includes('email') || msg.toLowerCase().includes('correo');
     const isLevelError = msg.toLowerCase().includes('level') || msg.toLowerCase().includes('lvl') || msg.toLowerCase().includes('enum');
-    showToast(
-      isLevelError
-        ? `El backend rechazó el nivel "${lvl}". Revisa LevelEnum en api_intf.py`
-        : msg,
-      'danger'
-    );
+    if (isMailError) {
+      showFieldError('edit-mail', 'edit-mail-error', 'Este correo ya está en uso o no es válido.');
+    } else if (isLevelError) {
+      showToast(`El backend rechazó el nivel "${lvl}". Revisa LevelEnum en api_intf.py`, 'danger');
+    } else {
+      showToast(msg, 'danger');
+    }
     return;
   }
 
@@ -1735,6 +1914,21 @@ function downloadPem(pem, filename) {
   a.href = url; a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ─── FIELD ERROR HELPERS ──────────────────────────────────────────────────────
+function showFieldError(inputId, errorId, msg) {
+  const input = document.getElementById(inputId);
+  const span  = document.getElementById(errorId);
+  if (input) input.classList.add('error');
+  if (span)  { span.textContent = msg; span.classList.add('show'); }
+}
+
+function clearFieldError(inputId, errorId) {
+  const input = document.getElementById(inputId);
+  const span  = document.getElementById(errorId);
+  if (input) input.classList.remove('error');
+  if (span)  { span.textContent = ''; span.classList.remove('show'); }
 }
 
 // ─── TOAST ────────────────────────────────────────────────────────────────────
