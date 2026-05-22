@@ -731,6 +731,93 @@
     .stat-card:nth-child(2) { animation-delay: 0.1s; }
     .stat-card:nth-child(3) { animation-delay: 0.15s; }
     .stat-card:nth-child(4) { animation-delay: 0.2s; }
+
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px;
+      display: block;
+    }
+
+    .content-section {
+      display: none;
+      width: 100%;
+    }
+
+    .content-section.active {
+      display: block;
+    }
+
+    .sig-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .sig-badge.ok {
+      background: var(--green-50);
+      color: var(--green-700);
+    }
+
+    .sig-badge.warn {
+      background: var(--amber-50);
+      color: var(--amber-700);
+    }
+
+    .sig-badge.bad {
+      background: var(--red-50);
+      color: var(--red-700);
+    }
+
+    .sig-meta {
+      font-size: 11.5px;
+      color: var(--text-hint);
+      font-family: var(--font-mono);
+    }
+
+    .mail-preview-box {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+
+    .mail-attachments-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mail-attachment-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+
+    .mail-attachment-name {
+      font-size: 12.5px;
+      color: var(--text-primary);
+    }
+
+    .mail-attachment-meta {
+      font-size: 11px;
+      color: var(--text-hint);
+      font-family: var(--font-mono);
+    }
   </style>
 </head>
 <body>
@@ -750,9 +837,17 @@
   </div>
 
   <nav>
-    <div class="nav-item active">
+    <div class="nav-item active" onclick="setNav(this); showSection('users-section')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5.5" height="5.5" rx="1.2" fill="currentColor" opacity="0.9"/><rect x="8.5" y="2" width="5.5" height="5.5" rx="1.2" fill="currentColor" opacity="0.4"/><rect x="2" y="8.5" width="5.5" height="5.5" rx="1.2" fill="currentColor" opacity="0.4"/><rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1.2" fill="currentColor" opacity="0.4"/></svg>
       Panel
+    </div>
+    <div class="nav-item" onclick="setNav(this); showSection('mail-section')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+        <path d="M2 4.5h12v7H2z" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M2.5 5l5.5 4 5.5-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Correos PGP
+      <span class="nav-badge" id="mail-count-badge">0</span>
     </div>
   </nav>
 
@@ -789,75 +884,115 @@
 
   <!-- CONTENT -->
   <div class="content">
-    <!-- STATS -->
-    <div class="stats-grid">
-      <div class="stat-card green">
-        <div class="stat-label">Usuarios registrados</div>
-        <div class="stat-val" id="stat-total-users">—</div>
-        <div class="stat-sub neutral">Cargando...</div>
+    <div id="users-section" class="content-section active"></div>
+      <!-- STATS -->
+      <div class="stats-grid">
+        <div class="stat-card green">
+          <div class="stat-label">Usuarios registrados</div>
+          <div class="stat-val" id="stat-total-users">—</div>
+          <div class="stat-sub neutral">Cargando...</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">Certificados vigentes</div>
+          <div class="stat-val" id="stat-certs">—</div>
+          <div class="stat-sub neutral">RSA-4096 · SHA-256</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">Revocados en CRL</div>
+          <div class="stat-val" id="stat-revoked">—</div>
+          <div class="stat-sub neutral">Cargando...</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-label">Por expirar (30 días)</div>
+          <div class="stat-val" id="stat-expiring">—</div>
+          <div class="stat-sub neutral">Cargando...</div>
+        </div>
       </div>
-      <div class="stat-card blue">
-        <div class="stat-label">Certificados vigentes</div>
-        <div class="stat-val" id="stat-certs">—</div>
-        <div class="stat-sub neutral">RSA-4096 · SHA-256</div>
-      </div>
-      <div class="stat-card red">
-        <div class="stat-label">Revocados en CRL</div>
-        <div class="stat-val" id="stat-revoked">—</div>
-        <div class="stat-sub neutral">Cargando...</div>
-      </div>
-      <div class="stat-card amber">
-        <div class="stat-label">Por expirar (30 días)</div>
-        <div class="stat-val" id="stat-expiring">—</div>
-        <div class="stat-sub neutral">Cargando...</div>
+
+      <!-- TABLE -->
+      <div class="table-panel">
+        <div class="table-header">
+          <div>
+            <div class="table-title">Directorio de usuarios</div>
+            <div class="table-count">Cargando usuarios...</div>
+          </div>
+          <div class="filters">
+            <div class="search-wrap">
+              <svg viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M9.5 9.5l3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              <input class="search-input" type="text" placeholder="Buscar usuario, área…" oninput="filterTable(this.value)"/>
+            </div>
+            <div class="filter-tabs">
+              <button class="filter-tab active" onclick="setFilter(this,'todos')">Todos</button>
+              <button class="filter-tab" onclick="setFilter(this,'activo')">Activos</button>
+              <button class="filter-tab" onclick="setFilter(this,'revocado')">Revocados</button>
+              <button class="filter-tab" onclick="setFilter(this,'expirar')">Por expirar</button>
+            </div>
+            <select class="level-filter-select" id="level-filter-select" onchange="setLevelFilter(this.value)">
+              <option value="todos">Todos los niveles</option>
+              <option value="admin">N1 — Administrador</option>
+              <option value="coordinador">N2 — Coordinador</option>
+              <option value="operativo">N3 — Operativo</option>
+              <option value="captura">N4 — Captura</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table id="user-table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Área</th>
+                <th>Nivel</th>
+                <th>Ingreso</th>
+                <th>Estado cert.</th>
+                <th>Expira</th>
+                <th>N/S Certificado</th>
+                <th style="width:100px">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="table-body">
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <!-- TABLE -->
-    <div class="table-panel">
-      <div class="table-header">
-        <div>
-          <div class="table-title">Directorio de usuarios</div>
-          <div class="table-count">Cargando usuarios...</div>
-        </div>
-        <div class="filters">
-          <div class="search-wrap">
-            <svg viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4" stroke="currentColor" stroke-width="1.2"/><path d="M9.5 9.5l3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-            <input class="search-input" type="text" placeholder="Buscar usuario, área…" oninput="filterTable(this.value)"/>
+    <div id="mail-section" class="content-section">
+      <div class="table-panel">
+        <div class="table-header">
+          <div>
+            <div class="table-title">Correos firmados</div>
+            <div class="table-count" id="mail-table-count">Cargando correos...</div>
           </div>
-          <div class="filter-tabs">
-            <button class="filter-tab active" onclick="setFilter(this,'todos')">Todos</button>
-            <button class="filter-tab" onclick="setFilter(this,'activo')">Activos</button>
-            <button class="filter-tab" onclick="setFilter(this,'revocado')">Revocados</button>
-            <button class="filter-tab" onclick="setFilter(this,'expirar')">Por expirar</button>
+          <div class="filters">
+            <button class="btn" onclick="openModal('pgpkey')">Registrar clave PGP</button>
+            <button class="btn btn-primary" onclick="openModal('mail-compose')">Redactar correo</button>
           </div>
-          <select class="level-filter-select" id="level-filter-select" onchange="setLevelFilter(this.value)">
-            <option value="todos">Todos los niveles</option>
-            <option value="admin">N1 — Administrador</option>
-            <option value="coordinador">N2 — Coordinador</option>
-            <option value="operativo">N3 — Operativo</option>
-            <option value="captura">N4 — Captura</option>
-          </select>
         </div>
-      </div>
 
-      <div style="overflow-x:auto">
-        <table id="user-table">
-          <thead>
-            <tr>
-              <th>Usuario</th>
-              <th>Área</th>
-              <th>Nivel</th>
-              <th>Ingreso</th>
-              <th>Estado cert.</th>
-              <th>Expira</th>
-              <th>N/S Certificado</th>
-              <th style="width:100px">Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="table-body">
-          </tbody>
-        </table>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Remitente</th>
+                <th>Asunto</th>
+                <th>Fecha</th>
+                <th>Firma mensaje</th>
+                <th>Adjuntos</th>
+                <th>Fingerprint</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="mail-table-body">
+              <tr>
+                <td colspan="7" style="text-align:center;padding:32px;color:var(--text-hint);font-size:13px;">
+                  Sin cargar correos.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -1009,13 +1144,109 @@
   </div>
 </div>
 
+<!-- MODAL CLAVE PGP -->
+
+<div class="overlay" id="overlay-pgpkey" onclick="closeModalOutside(event,'overlay-pgpkey')">
+  <div class="modal" style="width:640px;max-width:calc(100vw - 40px);">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Registrar clave pública PGP</div>
+        <div class="modal-subtitle">Asocia una clave OpenPGP a un usuario interno</div>
+      </div>
+      <button class="icon-btn" onclick="closeModal('pgpkey')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">UID del usuario</label>
+        <input id="pgp-uid" class="form-input" placeholder="Ej. 12345678">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Clave pública armada</label>
+        <textarea id="pgp-public-key" class="form-input" style="min-height:220px;font-family:var(--font-mono);" placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('pgpkey')">Cancelar</button>
+      <button class="btn btn-primary" onclick="registerPgpKey()">Registrar clave</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REDACTAR CORREO -->
+
+<div class="overlay" id="overlay-mail-compose" onclick="closeModalOutside(event,'overlay-mail-compose')">
+  <div class="modal" style="width:760px;max-width:calc(100vw - 40px);">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Redactar correo firmado</div>
+        <div class="modal-subtitle">Firma el contenido y los adjuntos con OpenPGP</div>
+      </div>
+      <button class="icon-btn" onclick="closeModal('mail-compose')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">UID remitente</label>
+          <input id="mail-uid" class="form-input" placeholder="UID del firmante">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Asunto</label>
+          <input id="mail-subject" class="form-input" placeholder="Asunto del correo">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Mensaje</label>
+        <textarea id="mail-body" class="form-input" style="min-height:160px;" placeholder="Escribe el contenido del correo..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Clave privada armada</label>
+        <textarea id="mail-private-key" class="form-input" style="min-height:180px;font-family:var(--font-mono);" placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Contraseña de la clave</label>
+        <input id="mail-password" type="password" class="form-input" placeholder="Contraseña de la clave privada">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Adjuntos</label>
+        <input id="mail-attachments" type="file" class="form-input" multiple>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('mail-compose')">Cancelar</button>
+      <button class="btn btn-primary" onclick="sendSignedMail()">Firmar y guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE DEL CORREO -->
+
+<div class="overlay" id="overlay-mail-detail" onclick="closeModalOutside(event,'overlay-mail-detail')">
+  <div class="modal" style="width:760px;max-width:calc(100vw - 40px);">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="mail-detail-title">Correo firmado</div>
+        <div class="modal-subtitle" id="mail-detail-subtitle">Verificación OpenPGP</div>
+      </div>
+      <button class="icon-btn" onclick="closeModal('mail-detail')">×</button>
+    </div>
+    <div class="modal-body" id="mail-detail-body"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('mail-detail')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 // Cambia este valor si tu backend corre en otro puerto
-const API = 'http://localhost:8000/api';
+const API = "http://localhost:8000/api/";
 
 // ─── HELPERS DE NIVEL (mapeo desde api_intf.py Levels enum) ──────────────────
 // Backend usa: "admin" | "coordinador" | "captura"  (LevelEnum en api_intf.py)
@@ -1042,11 +1273,34 @@ function palette(uid) {
   return AVATAR_PALETTE[i] || AVATAR_PALETTE[0];
 }
 
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      resolve(result.includes(',') ? result.split(',')[1] : result);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // ─── ESTADO LOCAL ─────────────────────────────────────────────────────────────
 // users y certs se cargan del backend; los CSRs pendientes también
 let USERS = [];       // [ User ]  — campos de api_intf.py
 let CERTS = [];       // [ CertificateInfo ]
 let CSRS  = [];       // [ CSRStatus ]
+let MAILS = [];
+let MAIL_VERIFICATIONS = {};
 
 // Índices para joins rápidos en el frontend
 let certsByUid = {};  // uid -> [ CertificateInfo ]
@@ -1059,19 +1313,22 @@ let currentCertUser = null;   // { user, cert }
 // ─── FETCH GENÉRICO ───────────────────────────────────────────────────────────
 async function apiFetch(path, opts = {}) {
   try {
-    const res = await fetch(API + path, {
-      headers: { 'Content-Type': 'application/json' },
-      ...opts,
+    const base = API.endsWith("/") ? API : API + "/";
+    const cleanPath = String(path || "").replace(/^\/+/, "");
+    const res = await fetch(base + cleanPath, {
+      headers: { "Content-Type": "application/json" },
+      ...opts
     });
-    // El backend devuelve errores con texto descriptivo — los capturamos
+
     if (!res.ok) {
       const errText = await res.text();
-      console.error(`API error ${res.status} en ${path}:`, errText);
-      return { _error: true, status: res.status, message: errText };
+      console.error("API error", res.status, "en", path, errText);
+      return { error: true, status: res.status, message: errText };
     }
+
     return await res.json();
   } catch (e) {
-    console.error('API error:', path, e);
+    console.error("API fetch error", path, e);
     return null;
   }
 }
@@ -1081,26 +1338,23 @@ async function apiFetch(path, opts = {}) {
 const revokedCertIds = new Set();
 
 // ─── CARGA INICIAL ────────────────────────────────────────────────────────────
+
 async function loadAll() {
   setLoading(true);
 
-  // El backend tiene GET /users y GET /certs. No existe /csrs.
   const [users, certs] = await Promise.all([
     apiFetch('/users'),
-    apiFetch('/certs'),
+    apiFetch('/certs')
   ]);
 
   USERS = Array.isArray(users) ? users : [];
   CERTS = Array.isArray(certs) ? certs : [];
-  CSRS  = [];
+  CSRS = [];
 
-  // Normalizar campo revocado: el backend usa "revoked", el frontend usa "revocated"
   for (const c of CERTS) {
     if (c.revoked !== undefined) c.revocated = c.revoked;
-    if (revokedCertIds.has(c.id)) c.revocated = true;
   }
 
-  // Construir índice cert por uid
   certsByUid = {};
   for (const c of CERTS) {
     if (!certsByUid[c.uid]) certsByUid[c.uid] = [];
@@ -1111,6 +1365,52 @@ async function loadAll() {
   renderTable();
   updateCsrBadge();
   setLoading(false);
+
+  await loadMails();
+}
+
+async function loadMails() {
+  const body = document.getElementById("mail-table-body");
+  if (body) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align:center;padding:32px;color:var(--text-hint);font-size:13px;">
+          Cargando correos...
+        </td>
+      </tr>`;
+  }
+
+  try {
+    const mails = await apiFetch("mail");
+    console.log("MAILS raw:", mails);
+
+    MAILS = Array.isArray(mails) ? mails : [];
+    MAILVERIFICATIONS = {};
+
+    for (const mail of MAILS) {
+      try {
+        const res = await apiFetch(`mail/${encodeURIComponent(mail.id)}/verify`);
+        console.log("VERIFY", mail.id, res);
+        if (res && !res.error) {
+          MAILVERIFICATIONS[mail.id] = res;
+        }
+      } catch (e) {
+        console.error("Error verificando mail", mail?.id, e);
+      }
+    }
+
+    renderMailTable();
+  } catch (e) {
+    console.error("Error cargando correos", e);
+    if (body) {
+      body.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align:center;padding:32px;color:var(--red-700);font-size:13px;">
+            No se pudieron cargar los correos.
+          </td>
+        </tr>`;
+    }
+  }
 }
 
 function setLoading(on) {
@@ -1313,6 +1613,57 @@ function renderTable() {
   }).join('');
 }
 
+function renderMailTable() {
+  const body = document.getElementById('mail-table-body');
+  const badge = document.getElementById('mail-count-badge');
+  const count = document.getElementById('mail-table-count');
+
+  if (badge) badge.textContent = MAILS.length;
+  if (count) {
+    count.textContent = `${MAILS.length} correo${MAILS.length !== 1 ? 's' : ''} firmado${MAILS.length !== 1 ? 's' : ''}`;
+  }
+
+  if (!body) return;
+
+  if (!MAILS.length) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align:center;padding:32px;color:var(--text-hint);font-size:13px;">
+          No hay correos firmados.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  body.innerHTML = MAILS.map(mail => {
+    const v = MAILVERIFICATIONS[mail.id];
+    const msgOk = v?.message_ok === true;
+    const attOk = v?.attachments_ok === true;
+    const msgCls = v ? (msgOk ? "ok" : "bad") : "warn";
+    const msgLabel = v ? (msgOk ? "Válida" : "Inválida") : "Pendiente";
+    const attCls = v ? (attOk ? "ok" : "bad") : "warn";
+    const attLabel = v ? (attOk ? "Íntegros" : "Con error") : "Pendiente";
+
+    return `
+      <tr>
+        <td><span class="user-name">${escapeHtml(mail.sender_uid || "-")}</span></td>
+        <td>${escapeHtml(mail.subject || "sin asunto")}</td>
+        <td><span class="exp-date">${fmtDate(mail.created_at)}</span></td>
+        <td><span class="sig-badge ${msgCls}">${msgLabel}</span></td>
+        <td><span class="sig-badge ${attCls}">${attLabel}</span></td>
+        <td><span class="sig-meta">${escapeHtml(mail.sender_fingerprint || "-")}</span></td>
+        <td>
+          <div class="action-cell">
+            <button class="icon-btn" title="Ver correo" onclick="openMailDetail('${mail.id}')">Ver</button>
+            <button class="icon-btn" title="Revalidar firma" onclick="verifyMailById('${mail.id}')">OK</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
 // ─── FILTROS ──────────────────────────────────────────────────────────────────
 function filterTable(val) {
   currentSearch = val.toLowerCase();
@@ -1334,6 +1685,12 @@ function setLevelFilter(val) {
     else sel.classList.add('filtered');
   }
   renderTable();
+}
+
+function showSection(id) {
+  document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
 }
 
 function setNav(el) {
@@ -1477,6 +1834,18 @@ async function showCert(uid) {
   openModal('cert');
 }
 
+async function verifyMailById(messageId) {
+  const res = await apiFetch(`/mail/${encodeURIComponent(messageId)}/verify`);
+  if (!res || res.error) {
+    showToast(res?.message || 'No se pudo verificar la firma.', 'danger');
+    return;
+  }
+
+  MAIL_VERIFICATIONS[messageId] = res;
+  renderMailTable();
+  showToast('Firma verificada.', 'success');
+}
+
 function copyPem() {
   const txt = document.getElementById('cert-pem-text');
   if (!txt) return;
@@ -1517,6 +1886,92 @@ function updateNewModalCertVisibility() {
     ? `${lvl === 'operativo' ? 'Operativos' : 'Captura'} no requieren certificado digital`
     : 'El certificado se cargará por separado una vez generado externamente';
   document.getElementById('new-modal-submit-label').textContent = 'Registrar usuario';
+}
+
+async function registerPgpKey() {
+  const uid = document.getElementById('pgp-uid').value.trim();
+  const public_key_armored = document.getElementById('pgp-public-key').value.trim();
+
+  if (!uid || !public_key_armored) {
+    showToast('UID y clave pública son obligatorios.', 'danger');
+    return;
+  }
+
+  const res = await apiFetch('/pgp/keys', {
+    method: 'POST',
+    body: JSON.stringify({ uid, public_key_armored })
+  });
+
+  if (!res || res.error) {
+    showToast(res?.message || 'No se pudo registrar la clave PGP.', 'danger');
+    return;
+  }
+
+  showToast(`Clave PGP registrada para ${uid}`, 'success');
+  document.getElementById('pgp-uid').value = '';
+  document.getElementById('pgp-public-key').value = '';
+  closeModal('pgpkey');
+}
+
+async function openMailDetail(messageId) {
+  const mail = MAILS.find(m => String(m.id) === String(messageId));
+  if (!mail) return;
+
+  if (!MAIL_VERIFICATIONS[messageId]) {
+    const res = await apiFetch(`/mail/${encodeURIComponent(messageId)}/verify`);
+    if (res && !res.error) {
+      MAIL_VERIFICATIONS[messageId] = res;
+    }
+  }
+
+  const v = MAIL_VERIFICATIONS[messageId];
+  const sigOk = v?.message_ok === true;
+  const attOk = v?.attachments_ok === true;
+
+  const attachmentsHtml = Array.isArray(mail.attachments) && mail.attachments.length
+    ? `
+      <div class="cert-section">
+        <div class="cert-section-label">Adjuntos</div>
+        <div class="mail-attachments-list">
+          ${mail.attachments.map(att => `
+            <div class="mail-attachment-item">
+              <div>
+                <div class="mail-attachment-name">${escapeHtml(att.filename || 'Adjunto')}</div>
+                <div class="mail-attachment-meta">${escapeHtml(att.sha256 || '')}</div>
+              </div>
+              <span class="sig-badge ${attOk ? 'ok' : 'warn'}">${attOk ? 'Válido' : 'Pendiente'}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `
+    : '';
+
+  document.getElementById('mail-detail-title').textContent = mail.subject || 'Correo firmado';
+  document.getElementById('mail-detail-subtitle').textContent = `Firmante: ${v?.signer_uid || mail.sender_uid || '-'}`;
+
+  document.getElementById('mail-detail-body').innerHTML = `
+    <div class="sig-badge ${sigOk ? 'ok' : 'bad'}">${sigOk ? 'Firma del mensaje válida' : 'Firma del mensaje inválida'}</div>
+    <div style="height:10px;"></div>
+    <div class="sig-badge ${attOk ? 'ok' : 'warn'}">${attOk ? 'Adjuntos íntegros' : 'Adjuntos no verificados o alterados'}</div>
+
+    <div class="cert-section">
+      <div class="cert-section-label">Metadatos</div>
+      <div class="cert-row"><span class="cert-row-label">UID firmante</span><span class="cert-row-val">${escapeHtml(v?.signer_uid || mail.sender_uid || '-')}</span></div>
+      <div class="cert-row"><span class="cert-row-label">Fingerprint</span><span class="cert-row-val">${escapeHtml(v?.fingerprint || mail.sender_fingerprint || '-')}</span></div>
+      <div class="cert-row"><span class="cert-row-label">Resultado</span><span class="cert-row-val">${escapeHtml(v?.details || '-')}</span></div>
+      <div class="cert-row"><span class="cert-row-label">Fecha</span><span class="cert-row-val">${fmtDate(mail.created_at)}</span></div>
+    </div>
+
+    <div class="cert-section">
+      <div class="cert-section-label">Contenido</div>
+      <div class="mail-preview-box">${escapeHtml(mail.body || '')}</div>
+    </div>
+
+    ${attachmentsHtml}
+  `;
+
+  openModal('mail-detail');
 }
 
 // ─── CREAR USUARIO ────────────────────────────────────────────────────────────
@@ -1602,6 +2057,56 @@ async function createUser() {
   } else {
     showToast(`Usuario ${name} registrado correctamente`, 'success');
   }
+}
+async function sendSignedMail() {
+  const uid = document.getElementById("mail-uid").value.trim();
+  const subject = document.getElementById("mail-subject").value.trim();
+  const body = document.getElementById("mail-body").value.trim();
+  const private_key_armored = document.getElementById("mail-private-key").value.trim();
+  const password = document.getElementById("mail-password").value;
+  const files = Array.from(document.getElementById("mail-attachments").files);
+
+  if (!uid || !subject || !body || !private_key_armored || !password) {
+    showToast("Completa remitente, asunto, mensaje, clave privada y contraseña.", "danger");
+    return;
+  }
+
+  const attachments = [];
+  for (const file of files) {
+    attachments.push({
+      filename: file.name,
+      mime: file.type || "application/octet-stream",
+      content_b64: await fileToBase64(file)
+    });
+  }
+
+  const res = await apiFetch("mail", {
+    method: "POST",
+    body: JSON.stringify({ uid, subject, body, private_key_armored, password, attachments })
+  });
+
+  if (!res || res.error) {
+    showToast(res?.message || "No se pudo firmar el correo.", "danger");
+    return;
+  }
+
+  showToast(`Correo firmado guardado con id ${res.id}`, "success");
+
+  document.getElementById("mail-uid").value = "";
+  document.getElementById("mail-subject").value = "";
+  document.getElementById("mail-body").value = "";
+  document.getElementById("mail-private-key").value = "";
+  document.getElementById("mail-password").value = "";
+  document.getElementById("mail-attachments").value = "";
+
+  closeModal("mail-compose");
+  await loadMails();
+
+  showSection("mail-section");
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  const mailNav = Array.from(document.querySelectorAll(".nav-item"))
+    .find(el => el.textContent.includes("Correos PGP"));
+  if (mailNav) mailNav.classList.add("active");
 }
 
 // ─── CARGA DE CERTIFICADO PEM ─────────────────────────────────────────────────

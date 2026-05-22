@@ -386,7 +386,176 @@ def register(api, db_filename):
             
             return {"raw": cert.public_bytes(serialization.Encoding.PEM).decode()}
 
+#    return api
+
+#'''
+    # mail
+    from . import pgp_core
+
+    pgp_key_model = api.model("PGPKeyCreate", {
+        "uid": StrField("User id", required=True),
+        "public_key_armored": StrField("Public PGP key", required=True)
+    })
+
+    attachment_model = api.model("MailAttachment", {
+        "filename": StrField("Attachment filename", required=True),
+        "mime": StrField("MIME type", required=True),
+        "content_b64": StrField("Attachment content in base64", required=True)
+    })
+
+    mail_create_model = api.model("MailCreate", {
+        "uid": StrField("Sender uid", required=True),
+        "subject": StrField("Mail subject", required=True),
+        "body": StrField("Mail body", required=True),
+        "private_key_armored": StrField("Private PGP key", required=True),
+        "password": StrField("Private key password", required=True),
+        "attachments": fields.List(fields.Nested(attachment_model), required=False)
+    })
+
+    mail_info_model = api.model("MailInfo", {
+        "id": StrField("Message id", required=True),
+        "sender_uid": StrField("Sender uid", required=True),
+        "subject": StrField("Mail subject", required=True),
+        "body": StrField("Mail body", required=True),
+        "body_sig": StrField("Detached signature", required=True),
+        "sender_fingerprint": StrField("Sender key fingerprint", required=True),
+        "created_at": StrField("Creation timestamp", required=True),
+        "attachments": fields.List(fields.Raw, required=False)
+    })
+
+    verify_reply_model = api.model("MailVerifyReply", {
+        "message_ok": fields.Boolean(required=True),
+        "attachments_ok": fields.Boolean(required=True),
+        "signer_uid": StrField("Signer uid", required=True),
+        "fingerprint": StrField("Key fingerprint", required=True),
+        "details": StrField("Verification details", required=True)
+    })
+
+    pgpkeyinfo_model = api.model("PGPKeyInfo", {
+        "uid": StrField("User id", required=True),
+        "fingerprint": StrField("Fingerprint", required=True),
+        "active": fields.Boolean(required=True),
+        "revoked": fields.Boolean(required=True),
+        "created_at": StrField("Creation time", required=True)
+    })
+
+    @api.route("/pgp/keys")
+    class PGPKeysResource(Resource):
+        @api.marshal_list_with(pgpkeyinfo_model)
+        def get(self):
+            return db.list_pgp_keys()
+
+        @api.expect(pgp_key_model)
+        def post(self):
+            payload = api.payload
+            usrs = db.list_users(uid=payload["uid"])
+            if len(usrs) != 1:
+                api.abort(400, "User not found uniquely")
+
+            fpr = pgp_core.fingerprint_of_public_key(payload["public_key_armored"])
+            db.add_pgp_key(payload["uid"], fpr, payload["public_key_armored"])
+            return {"uid": payload["uid"], "fingerprint": fpr}, 201
+    
+    @api.route("/mail")
+    class MailResource(Resource):
+        @api.marshal_list_with(mail_info_model)
+        def get(self):
+            messages = db.list_mail_messages()
+            for msg in messages:
+                msg["attachments"] = db.get_mail_attachments(msg["id"])
+            return messages
+
+        @api.expect(mail_create_model)
+        def post(self):
+            payload = api.payload
+            usrs = db.list_users(uid=payload["uid"])
+            if len(usrs) != 1:
+                api.abort(400, "User not found uniquely")
+
+            usr = usrs[0]
+            if usr["lvl"] not in {"admin", "coordinador"}:
+                api.abort(403, "User is not allowed to sign mail")
+
+            pubkey = db.get_active_pgp_key(payload["uid"])
+            if pubkey is None:
+                api.abort(400, "No active public PGP key registered for this user")
+
+            canonical_body = pgp_core.canonicalize_body(payload["subject"], payload["body"])
+            body_sig = pgp_core.sign_text_detached(
+                payload["private_key_armored"],
+                payload["password"],
+                canonical_body
+            )
+
+            msg_id = db.add_mail_message(
+                payload["uid"],
+                payload["subject"],
+                payload["body"],
+                body_sig,
+                pubkey["fingerprint"]
+            )
+
+            for att in payload.get("attachments", []):
+                raw = pgp_core.b64decode_bytes(att["content_b64"])
+                sig = pgp_core.sign_bytes_detached(
+                    payload["private_key_armored"],
+                    payload["password"],
+                    raw
+                )
+                db.add_mail_attachment(
+                    msg_id,
+                    att["filename"],
+                    att["mime"],
+                    att["content_b64"],
+                    sig,
+                    pgp_core.sha256_bytes(raw)
+                )
+
+            return {"id": msg_id}, 201
+
+    @api.route("/mail/<string:message_id>/verify")
+    class MailVerify(Resource):
+        @api.marshal_with(verify_reply_model)
+        def get(self, message_id):
+            msg = db.get_mail_message(message_id)
+            if msg is None:
+                api.abort(404, "Message not found")
+
+            pubkey = db.get_active_pgp_key(msg["sender_uid"])
+            if pubkey is None:
+                api.abort(400, "Signer has no active public key")
+
+            canonical_body = pgp_core.canonicalize_body(msg["subject"], msg["body"])
+            body_ok = pgp_core.verify_text_detached(
+                pubkey["public_key_armored"],
+                canonical_body,
+                msg["body_sig"]
+            )
+
+            atts = db.get_mail_attachments(message_id)
+            atts_ok = True
+            for att in atts:
+                raw = pgp_core.b64decode_bytes(att["content_b64"])
+                ok = pgp_core.verify_bytes_detached(
+                    pubkey["public_key_armored"],
+                    raw,
+                    att["sig_b64"]
+                )
+                if not ok:
+                    atts_ok = False
+                    break
+
+            return {
+                "message_ok": body_ok,
+                "attachments_ok": atts_ok,
+                "signer_uid": msg["sender_uid"],
+                "fingerprint": msg["sender_fingerprint"],
+                "details": "Valid signature" if body_ok and atts_ok else "Invalid signature or modified content"
+            }
+#'''
+
     return api
+
 
 
 # Helper functions

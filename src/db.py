@@ -215,3 +215,94 @@ def add_cert(uid: str, cert: x509.Certificate):
     certs.insert(_ser_crt(certinfo))
 
     return cid
+
+
+#'''
+
+# mail_db
+pgp_keys = None
+mail_messages = None
+mail_attachments = None
+
+def init(filename):
+    global db, users, certs, pgp_keys, mail_messages, mail_attachments
+    ldb = tinydb.TinyDB(filename)
+    if not _validate_db(ldb):
+        return False
+
+    db = ldb
+    users = db.table("users")
+    certs = db.table("certs")
+    pgp_keys = db.table("pgp_keys")
+    mail_messages = db.table("mail_messages")
+    mail_attachments = db.table("mail_attachments")
+    return True
+
+def add_pgp_key(uid: str, fingerprint: str, public_key_armored: str, revoked=False, active=True):
+    rec = {
+        "uid": uid,
+        "fingerprint": fingerprint,
+        "public_key_armored": public_key_armored,
+        "revoked": revoked,
+        "active": active,
+        "created_at": datetime.utcnow().isoformat()
+    }
+    pgp_keys.insert(rec)
+
+def get_active_pgp_key(uid: str):
+    Q = tinydb.Query()
+    ret = pgp_keys.search((Q.uid == uid) & (Q.active == True) & (Q.revoked == False))
+    if len(ret) == 0:
+        return None
+    ret = sorted(ret, key=lambda r: r.get("created_at", ""), reverse=True)
+    return ret[0]
+
+def add_mail_message(sender_uid: str, subject: str, body: str, body_sig: str, sender_fpr: str):
+    mid = str(len(mail_messages) + 1)
+    rec = {
+        "id": mid,
+        "sender_uid": sender_uid,
+        "subject": subject,
+        "body": body,
+        "body_sig": body_sig,
+        "sender_fingerprint": sender_fpr,
+        "created_at": datetime.utcnow().isoformat()
+    }
+    mail_messages.insert(rec)
+    return mid
+
+def add_mail_attachment(message_id: str, filename: str, mime: str, content_b64: str, sig_b64: str, sha256: str):
+    aid = str(len(mail_attachments) + 1)
+    rec = {
+        "id": aid,
+        "message_id": message_id,
+        "filename": filename,
+        "mime": mime,
+        "content_b64": content_b64,
+        "sig_b64": sig_b64,
+        "sha256": sha256
+    }
+    mail_attachments.insert(rec)
+    return aid
+
+def list_mail_messages(sender_uid: str = ""):
+    Q = tinydb.Query()
+    if sender_uid:
+        return mail_messages.search(Q.sender_uid == sender_uid)
+    return mail_messages.all()
+
+def get_mail_message(message_id: str):
+    Q = tinydb.Query()
+    ret = mail_messages.search(Q.id == message_id)
+    return ret[0] if len(ret) == 1 else None
+
+def get_mail_attachments(message_id: str):
+    Q = tinydb.Query()
+    return mail_attachments.search(Q.message_id == message_id)
+
+def list_pgp_keys(uid: str = ""):
+    Q = tinydb.Query()
+    if uid:
+        return pgpkeys.search(Q.uid == uid)
+    return pgpkeys.all()
+#'''
