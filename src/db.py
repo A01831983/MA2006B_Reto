@@ -120,8 +120,14 @@ def change_users(uid: str, new: dict):
     if "mail" in new.keys():
         usrs = list_users(mail=new["mail"])
 
-        if (len(usr) == 1 and usr["id"] != uid) or len(usr) > 1:
+        if len(usrs) > 1:
             raise ValueError("email address must be unique")
+        
+        if len(usrs) == 1:
+            usr = usrs[0]
+
+            if usr["uid"] != uid:
+                raise ValueError("email address must be unique")
 
     update = _ser_usr(new, check=False)
 
