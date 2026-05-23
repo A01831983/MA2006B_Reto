@@ -27,6 +27,7 @@
           # Cryptography
           cryptography
           bcrypt
+          pgpy
         ]);
       in {
         apps.default = {
