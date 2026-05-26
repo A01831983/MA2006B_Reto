@@ -9,7 +9,7 @@ __author__ = "Henning Arvid Ladewig"
 from enum import Enum
 from datetime import date, datetime
 
-from flask import jsonify, render_template, Response
+from flask import jsonify, render_template, Response, request
 from flask_restx import Api, Resource, fields, reqparse
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
@@ -386,39 +386,35 @@ def register(api, db_filename):
             
             return {"raw": cert.public_bytes(serialization.Encoding.PEM).decode()}
 
-#    return api
-
 #'''
     # mail
-    from . import pgp_core
-
-    pgp_key_model = api.model("PGPKeyCreate", {
-        "uid": StrField("User id", required=True),
-        "public_key_armored": StrField("Public PGP key", required=True)
-    })
+    from . import mail_crypto
 
     attachment_model = api.model("MailAttachment", {
         "filename": StrField("Attachment filename", required=True),
         "mime": StrField("MIME type", required=True),
-        "content_b64": StrField("Attachment content in base64", required=True)
+        "content_b64": StrField("Attachment content in base64", required=True),
+        "sig": StrField("Detached signature for attachment", required=True)
     })
 
     mail_create_model = api.model("MailCreate", {
         "uid": StrField("Sender uid", required=True),
+        "recipient": StrField("Mail recipient", required=True),
         "subject": StrField("Mail subject", required=True),
         "body": StrField("Mail body", required=True),
-        "private_key_armored": StrField("Private PGP key", required=True),
-        "password": StrField("Private key password", required=True),
+        "body_sig": StrField("Detached signature for canonical mail body", required=True),
         "attachments": fields.List(fields.Nested(attachment_model), required=False)
     })
 
     mail_info_model = api.model("MailInfo", {
         "id": StrField("Message id", required=True),
         "sender_uid": StrField("Sender uid", required=True),
+        "recipient": StrField("Recipient", required=True),
         "subject": StrField("Mail subject", required=True),
         "body": StrField("Mail body", required=True),
         "body_sig": StrField("Detached signature", required=True),
-        "sender_fingerprint": StrField("Sender key fingerprint", required=True),
+        "cert_id": StrField("Signing certificate id", required=True),
+        "signing_cert_fingerprint": StrField("Signing certificate fingerprint", required=True),
         "created_at": StrField("Creation timestamp", required=True),
         "attachments": fields.List(fields.Raw, required=False)
     })
@@ -431,31 +427,7 @@ def register(api, db_filename):
         "details": StrField("Verification details", required=True)
     })
 
-    pgpkeyinfo_model = api.model("PGPKeyInfo", {
-        "uid": StrField("User id", required=True),
-        "fingerprint": StrField("Fingerprint", required=True),
-        "active": fields.Boolean(required=True),
-        "revoked": fields.Boolean(required=True),
-        "created_at": StrField("Creation time", required=True)
-    })
 
-    @api.route("/pgp/keys")
-    class PGPKeysResource(Resource):
-        @api.marshal_list_with(pgpkeyinfo_model)
-        def get(self):
-            return db.list_pgp_keys()
-
-        @api.expect(pgp_key_model)
-        def post(self):
-            payload = api.payload
-            usrs = db.list_users(uid=payload["uid"])
-            if len(usrs) != 1:
-                api.abort(400, "User not found uniquely")
-
-            fpr = pgp_core.fingerprint_of_public_key(payload["public_key_armored"])
-            db.add_pgp_key(payload["uid"], fpr, payload["public_key_armored"])
-            return {"uid": payload["uid"], "fingerprint": fpr}, 201
-    
     @api.route("/mail")
     class MailResource(Resource):
         @api.marshal_list_with(mail_info_model)
@@ -476,42 +448,150 @@ def register(api, db_filename):
             if usr["lvl"] not in {"admin", "coordinador"}:
                 api.abort(403, "User is not allowed to sign mail")
 
-            pubkey = db.get_active_pgp_key(payload["uid"])
-            if pubkey is None:
-                api.abort(400, "No active public PGP key registered for this user")
+            valid_certs = db.list_certs(uid=payload["uid"], valid=True, revoked=False)
+            if len(valid_certs) == 0:
+                api.abort(400, "User has no active official certificate")
 
-            canonical_body = pgp_core.canonicalize_body(payload["subject"], payload["body"])
-            body_sig = pgp_core.sign_text_detached(
-                payload["private_key_armored"],
-                payload["password"],
-                canonical_body
+            cert_rec = valid_certs[0]
+            cert = cert_rec["cert"]
+            cert_pem = cert.public_bytes(serialization.Encoding.PEM).decode()
+
+            canonical_body = mail_crypto.canonicalize_body(
+                payload["subject"],
+                payload["recipient"],
+                payload["body"]
             )
+
+            body_ok = mail_crypto.verify_bytes(
+                cert_pem,
+                canonical_body,
+                payload["body_sig"]
+            )
+            if not body_ok:
+                api.abort(400, "Invalid body signature")
 
             msg_id = db.add_mail_message(
                 payload["uid"],
+                payload["recipient"],
                 payload["subject"],
                 payload["body"],
-                body_sig,
-                pubkey["fingerprint"]
+                payload["body_sig"],
+                cert_rec["id"],
+                mail_crypto.cert_fingerprint_sha256(cert)
             )
 
             for att in payload.get("attachments", []):
-                raw = pgp_core.b64decode_bytes(att["content_b64"])
-                sig = pgp_core.sign_bytes_detached(
-                    payload["private_key_armored"],
-                    payload["password"],
-                    raw
+                raw = mail_crypto.b64decode_bytes(att["content_b64"])
+
+                att_ok = mail_crypto.verify_bytes(
+                    cert_pem,
+                    raw,
+                    att["sig"]
                 )
+                if not att_ok:
+                    api.abort(400, f"Invalid signature for attachment '{att['filename']}'")
+
+                db.add_mail_attachment(
+                    msg_id,
+                    att["filename"],
+                    att["mime"],
+                    att["content_b64"],
+                    att["sig"],
+                    mail_crypto.sha256_bytes(raw)
+                )
+
+            return {"id": msg_id}, 201
+
+    from flask_cors import CORS
+    CORS(api.app)
+
+    @api.route("/mail/x509")
+    class MailX509(Resource):
+        def options(self):
+            return {}, 200
+
+        def post(self):
+            payload = request.get_json(force=True) or {}
+
+            uid = payload.get("uid")
+            recipient = payload.get("recipient")
+            subject = payload.get("subject")
+            body = payload.get("body")
+            private_key_pem = payload.get("private_key_pem")
+            password = payload.get("password")
+            attachments = payload.get("attachments", [])
+
+            missing = [k for k in ["uid", "recipient", "subject", "body", "private_key_pem"] if not payload.get(k)]
+            if missing:
+                return {
+                    "error": True,
+                    "message": f"Faltan campos obligatorios: {', '.join(missing)}"
+                }, 400
+
+            usrs = db.list_users(uid=uid)
+            if len(usrs) != 1:
+                return {"error": True, "message": "Usuario no encontrado de forma única"}, 400
+
+            certs = db.list_certs(uid=uid, valid=True, revoked=False)
+            if len(certs) == 0:
+                return {"error": True, "message": "El usuario no tiene certificado activo registrado"}, 400
+
+            cert_rec = certs[0]
+            cert = cert_rec["cert"]
+
+            canonical_body = mail_crypto.canonicalize_body(subject, recipient, body)
+
+            body_sig = mail_crypto.sign_bytes(
+                private_key_pem,
+                password,
+                canonical_body
+            )
+
+            cert_fpr = mail_crypto.cert_fingerprint_sha256(cert)
+
+            msg_id = db.add_mail_message(
+                uid,
+                recipient,
+                subject,
+                body,
+                body_sig,
+                cert_rec["id"],
+                cert_fpr
+            )
+
+            for att in attachments:
+                raw = mail_crypto.b64decode_bytes(att["content_b64"])
+                sig = mail_crypto.sign_bytes(private_key_pem, password, raw)
+
                 db.add_mail_attachment(
                     msg_id,
                     att["filename"],
                     att["mime"],
                     att["content_b64"],
                     sig,
-                    pgp_core.sha256_bytes(raw)
+                    mail_crypto.sha256_bytes(raw)
                 )
 
-            return {"id": msg_id}, 201
+            return {
+                "error": False,
+                "id": msg_id,
+                "message": "Correo firmado y guardado"
+            }, 201
+
+    @api.route("/mail/x509/certs")
+    class X509Certs(Resource):
+        def options(self):
+            return {}, 200
+
+        def post(self):
+            payload = api.payload
+            uid = payload.get("uid")
+            cert_pem = payload.get("cert_pem")
+
+            if not uid or not cert_pem:
+                api.abort(400, "uid y cert_pem son obligatorios")
+
+            return {"ok": True, "uid": uid}, 201
 
     @api.route("/mail/<string:message_id>/verify")
     class MailVerify(Resource):
@@ -521,13 +601,21 @@ def register(api, db_filename):
             if msg is None:
                 api.abort(404, "Message not found")
 
-            pubkey = db.get_active_pgp_key(msg["sender_uid"])
-            if pubkey is None:
-                api.abort(400, "Signer has no active public key")
+            cert_rec = db.get_cert(msg["cert_id"])
+            if cert_rec is None:
+                api.abort(400, "Signing certificate not found")
 
-            canonical_body = pgp_core.canonicalize_body(msg["subject"], msg["body"])
-            body_ok = pgp_core.verify_text_detached(
-                pubkey["public_key_armored"],
+            cert = cert_rec["cert"]
+            cert_pem = cert.public_bytes(serialization.Encoding.PEM).decode()
+
+            canonical_body = mail_crypto.canonicalize_body(
+                msg["subject"],
+                msg["recipient"],
+                msg["body"]
+            )
+
+            body_ok = mail_crypto.verify_bytes(
+                cert_pem,
                 canonical_body,
                 msg["body_sig"]
             )
@@ -535,9 +623,9 @@ def register(api, db_filename):
             atts = db.get_mail_attachments(message_id)
             atts_ok = True
             for att in atts:
-                raw = pgp_core.b64decode_bytes(att["content_b64"])
-                ok = pgp_core.verify_bytes_detached(
-                    pubkey["public_key_armored"],
+                raw = mail_crypto.b64decode_bytes(att["content_b64"])
+                ok = mail_crypto.verify_bytes(
+                    cert_pem,
                     raw,
                     att["sig_b64"]
                 )
@@ -549,14 +637,12 @@ def register(api, db_filename):
                 "message_ok": body_ok,
                 "attachments_ok": atts_ok,
                 "signer_uid": msg["sender_uid"],
-                "fingerprint": msg["sender_fingerprint"],
+                "fingerprint": msg["signing_cert_fingerprint"],
                 "details": "Valid signature" if body_ok and atts_ok else "Invalid signature or modified content"
             }
 #'''
 
     return api
-
-
 
 # Helper functions
 def StrField(desc, **kwargs):

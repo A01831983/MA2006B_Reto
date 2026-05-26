@@ -209,8 +209,8 @@ def add_cert(uid: str, cert: x509.Certificate):
     cid = str(cid)
 
     certinfo = {
-        "id": cid, "uid": uid, "not_after": cert.not_valid_after,
-        "not_before": cert.not_valid_before, "cert": cert, "revoked": False
+        "id": cid, "uid": uid, "not_after": cert.not_valid_after.date(),
+        "not_before": cert.not_valid_before.date(), "cert": cert, "revoked": False
     }
     certs.insert(_ser_crt(certinfo))
 
@@ -225,7 +225,8 @@ mail_messages = None
 mail_attachments = None
 
 def init(filename):
-    global db, users, certs, pgp_keys, mail_messages, mail_attachments
+    global db, users, certs, mail_messages, mail_attachments
+
     ldb = tinydb.TinyDB(filename)
     if not _validate_db(ldb):
         return False
@@ -233,39 +234,21 @@ def init(filename):
     db = ldb
     users = db.table("users")
     certs = db.table("certs")
-    pgp_keys = db.table("pgp_keys")
     mail_messages = db.table("mail_messages")
     mail_attachments = db.table("mail_attachments")
     return True
 
-def add_pgp_key(uid: str, fingerprint: str, public_key_armored: str, revoked=False, active=True):
-    rec = {
-        "uid": uid,
-        "fingerprint": fingerprint,
-        "public_key_armored": public_key_armored,
-        "revoked": revoked,
-        "active": active,
-        "created_at": datetime.utcnow().isoformat()
-    }
-    pgp_keys.insert(rec)
-
-def get_active_pgp_key(uid: str):
-    Q = tinydb.Query()
-    ret = pgp_keys.search((Q.uid == uid) & (Q.active == True) & (Q.revoked == False))
-    if len(ret) == 0:
-        return None
-    ret = sorted(ret, key=lambda r: r.get("created_at", ""), reverse=True)
-    return ret[0]
-
-def add_mail_message(sender_uid: str, subject: str, body: str, body_sig: str, sender_fpr: str):
+def add_mail_message(sender_uid: str, recipient: str, subject: str, body: str, body_sig: str, cert_id: str, cert_fpr: str):
     mid = str(len(mail_messages) + 1)
     rec = {
         "id": mid,
         "sender_uid": sender_uid,
+        "recipient": recipient,
         "subject": subject,
         "body": body,
         "body_sig": body_sig,
-        "sender_fingerprint": sender_fpr,
+        "cert_id": cert_id,
+        "signing_cert_fingerprint": cert_fpr,
         "created_at": datetime.utcnow().isoformat()
     }
     mail_messages.insert(rec)
@@ -300,9 +283,6 @@ def get_mail_attachments(message_id: str):
     Q = tinydb.Query()
     return mail_attachments.search(Q.message_id == message_id)
 
-def list_pgp_keys(uid: str = ""):
-    Q = tinydb.Query()
-    if uid:
-        return pgpkeys.search(Q.uid == uid)
-    return pgpkeys.all()
-#'''
+def get_cert(cid: str):
+    ret = list_certs(cid=cid)
+    return ret[0] if len(ret) == 1 else None

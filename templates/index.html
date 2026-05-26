@@ -742,10 +742,31 @@
     .content-section {
       display: none;
       width: 100%;
+      min-width: 0;
     }
 
     .content-section.active {
       display: block;
+      width: 100%;
+      animation: fadeIn 0.2s ease;
+    }
+
+    #mail-section .table-panel,
+    #users-section .table-panel {
+      width: 100%;
+    }
+
+    #mail-section {
+      min-height: 100%;
+      margin-top: -56px;
+    }
+
+    #mail-section.content-section.active {
+      margin-top: -56px;
+      position: relative;
+      z-index: 5;
+      background: var(--surface-2);
+      padding-top: 8px;
     }
 
     .sig-badge {
@@ -846,7 +867,7 @@
         <path d="M2 4.5h12v7H2z" stroke="currentColor" stroke-width="1.2"/>
         <path d="M2.5 5l5.5 4 5.5-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      Correos PGP
+      Correos
       <span class="nav-badge" id="mail-count-badge">0</span>
     </div>
   </nav>
@@ -871,7 +892,9 @@
   <div class="topbar">
     <div class="topbar-left">
       <div class="breadcrumb">
-        Casa Monarca › <span>Panel de administración</span>
+        <span id="breadcrumb-root">Casa Monarca</span>
+        <span>›</span>
+        <span id="breadcrumb-current">Panel de administración</span>
       </div>
     </div>
     <div class="topbar-right">
@@ -966,16 +989,73 @@
             <div class="table-count" id="mail-table-count">Cargando correos...</div>
           </div>
           <div class="filters">
-            <button class="btn" onclick="openModal('pgpkey')">Registrar clave PGP</button>
+            <button class="btn" onclick="openModal('x509cert')">Registrar certificado</button>
             <button class="btn btn-primary" onclick="openModal('mail-compose')">Redactar correo</button>
+
+            <div class="overlay" id="overlay-mail-compose" onclick="closeModalOutside(event,'overlay-mail-compose')">
+              <div class="modal" style="width:860px;max-width:calc(100vw - 32px)">
+                <div class="modal-head">
+                  <div>
+                    <div class="modal-title">Redactar correo firmado</div>
+                    <div class="modal-subtitle">Firma el contenido y los adjuntos con X.509</div>
+                  </div>
+                  <button class="icon-btn" onclick="closeModal('mail-compose')">✕</button>
+                </div>
+
+                <div class="modal-body">
+                  <div class="form-row" style="grid-template-columns: 1fr 1.2fr;">
+                    <div class="form-group">
+                      <label class="form-label">UID remitente</label>
+                      <input id="mail-uid" class="form-input" placeholder="UID del firmante">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Destinatario</label>
+                      <input id="mail-recipient" class="form-input" placeholder="correo@destino.com">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Asunto</label>
+                    <input id="mail-subject" class="form-input" placeholder="Asunto del correo">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Mensaje</label>
+                    <textarea id="mail-body" class="form-input" style="min-height:140px" placeholder="Escribe el cuerpo del correo"></textarea>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Clave privada PEM</label>
+                    <textarea id="mail-private-key" class="form-input" style="min-height:160px;font-family:var(--font-mono)" placeholder="-----BEGIN ENCRYPTED PRIVATE KEY-----"></textarea>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label">Contraseña</label>
+                      <input id="mail-password" type="password" class="form-input" placeholder="Contraseña de la clave">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Adjuntos</label>
+                      <input id="mail-attachments" type="file" class="form-input" multiple>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="modal-foot">
+                  <button class="btn" onclick="closeModal('mail-compose')">Cancelar</button>
+                  <button class="btn btn-primary" onclick="sendSignedMail()">Firmar y guardar</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div style="overflow-x:auto;">
+        <div style="overflow-x:auto">
           <table>
             <thead>
               <tr>
                 <th>Remitente</th>
+                <th>Destinatario</th>
                 <th>Asunto</th>
                 <th>Fecha</th>
                 <th>Firma mensaje</th>
@@ -1144,30 +1224,33 @@
   </div>
 </div>
 
-<!-- MODAL CLAVE PGP -->
-
-<div class="overlay" id="overlay-pgpkey" onclick="closeModalOutside(event,'overlay-pgpkey')">
-  <div class="modal" style="width:640px;max-width:calc(100vw - 40px);">
+<!-- MODAL CERTIFICADO X.509 -->
+<div class="overlay" id="overlay-x509cert" onclick="closeModalOutside(event,'overlay-x509cert')">
+  <div class="modal" style="width:640px;max-width:calc(100vw - 40px)">
     <div class="modal-head">
       <div>
-        <div class="modal-title">Registrar clave pública PGP</div>
-        <div class="modal-subtitle">Asocia una clave OpenPGP a un usuario interno</div>
+        <div class="modal-title">Registrar certificado X.509</div>
+        <div class="modal-subtitle">Asocia un certificado público a un usuario interno</div>
       </div>
-      <button class="icon-btn" onclick="closeModal('pgpkey')">×</button>
+      <button class="icon-btn" onclick="closeModal('x509cert')">×</button>
     </div>
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">UID del usuario</label>
-        <input id="pgp-uid" class="form-input" placeholder="Ej. 12345678">
+        <input id="x509-uid" class="form-input" placeholder="Ej. 12345678">
       </div>
       <div class="form-group">
-        <label class="form-label">Clave pública armada</label>
-        <textarea id="pgp-public-key" class="form-input" style="min-height:220px;font-family:var(--font-mono);" placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----"></textarea>
+        <label class="form-label">Certificado PEM</label>
+        <textarea
+          id="x509-cert-pem"
+          class="form-input"
+          style="min-height:160px;font-family:var(--font-mono)"
+          placeholder="-----BEGIN CERTIFICATE-----"></textarea>
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn" onclick="closeModal('pgpkey')">Cancelar</button>
-      <button class="btn btn-primary" onclick="registerPgpKey()">Registrar clave</button>
+      <button class="btn" onclick="closeModal('x509cert')">Cancelar</button>
+      <button class="btn btn-primary" onclick="registerX509Cert()">Registrar certificado</button>
     </div>
   </div>
 </div>
@@ -1179,7 +1262,7 @@
     <div class="modal-head">
       <div>
         <div class="modal-title">Redactar correo firmado</div>
-        <div class="modal-subtitle">Firma el contenido y los adjuntos con OpenPGP</div>
+        <div class="modal-subtitle">Firma el contenido y los adjuntos</div>
       </div>
       <button class="icon-btn" onclick="closeModal('mail-compose')">×</button>
     </div>
@@ -1190,24 +1273,34 @@
           <input id="mail-uid" class="form-input" placeholder="UID del firmante">
         </div>
         <div class="form-group">
-          <label class="form-label">Asunto</label>
-          <input id="mail-subject" class="form-input" placeholder="Asunto del correo">
+          <label class="form-label">Destinatario</label>
+          <input id="mail-recipient" class="form-input" placeholder="correo@destino.com">
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Mensaje</label>
-        <textarea id="mail-body" class="form-input" style="min-height:160px;" placeholder="Escribe el contenido del correo..."></textarea>
+        <label class="form-label">Asunto</label>
+        <input id="mail-subject" class="form-input" placeholder="Asunto del correo">
       </div>
 
       <div class="form-group">
-        <label class="form-label">Clave privada armada</label>
-        <textarea id="mail-private-key" class="form-input" style="min-height:180px;font-family:var(--font-mono);" placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----"></textarea>
+        <label class="form-label">Mensaje</label>
+        <textarea id="mail-body" class="form-input" style="min-height:140px" placeholder="Escribe el cuerpo del correo"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Clave privada PEM</label>
+        <textarea id="mail-private-key" class="form-input" style="min-height:180px;font-family:var(--font-mono)" placeholder="-----BEGIN ENCRYPTED PRIVATE KEY-----"></textarea>
       </div>
 
       <div class="form-group">
         <label class="form-label">Contraseña de la clave</label>
-        <input id="mail-password" type="password" class="form-input" placeholder="Contraseña de la clave privada">
+        <input id="mail-password" type="password" class="form-input" placeholder="Contraseña">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Certificado PEM</label>
+        <textarea id="mail-cert-pem" class="form-input" style="min-height:160px;font-family:var(--font-mono)" placeholder="-----BEGIN CERTIFICATE-----"></textarea>
       </div>
 
       <div class="form-group">
@@ -1229,7 +1322,7 @@
     <div class="modal-head">
       <div>
         <div class="modal-title" id="mail-detail-title">Correo firmado</div>
-        <div class="modal-subtitle" id="mail-detail-subtitle">Verificación OpenPGP</div>
+        <div class="modal-subtitle" id="mail-detail-subtitle">Verificación</div>
       </div>
       <button class="icon-btn" onclick="closeModal('mail-detail')">×</button>
     </div>
@@ -1243,6 +1336,7 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/openpgp@5.11.3/dist/openpgp.min.js"></script>
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 // Cambia este valor si tu backend corre en otro puerto
@@ -1331,6 +1425,106 @@ async function apiFetch(path, opts = {}) {
     console.error("API fetch error", path, e);
     return null;
   }
+}
+
+async function registerX509Cert() {
+  const uid = document.getElementById('x509-uid')?.value.trim();
+  const cert_pem = document.getElementById('x509-cert-pem')?.value.trim();
+
+  if (!uid || !cert_pem) {
+    showToast('UID y certificado PEM son obligatorios.', 'danger');
+    return;
+  }
+
+  const res = await apiFetch('mail/x509/certs', {
+    method: 'POST',
+    body: JSON.stringify({ uid, cert_pem })
+  });
+
+  if (!res || res.error) {
+    showToast(res?.message || 'No se pudo registrar el certificado X.509.', 'danger');
+    return;
+  }
+
+  showToast(`Certificado X.509 registrado para ${uid}.`, 'success');
+  document.getElementById('x509-uid').value = '';
+  document.getElementById('x509-cert-pem').value = '';
+  closeModal('x509cert');
+}
+
+async function sendSignedMailX509() {
+  const uidEl = document.getElementById('mailx-uid');
+  const subjectEl = document.getElementById('mailx-subject');
+  const bodyEl = document.getElementById('mailx-body');
+  const privateKeyEl = document.getElementById('mailx-private-key');
+  const passwordEl = document.getElementById('mailx-password');
+  const attachmentsEl = document.getElementById('mailx-attachments');
+
+  if (!uidEl || !subjectEl || !bodyEl || !privateKeyEl || !passwordEl || !attachmentsEl) {
+    console.error('Faltan elementos del formulario X.509');
+    showToast('El formulario X.509 no está bien conectado.', 'danger');
+    return;
+  }
+
+  const uid = uidEl.value.trim();
+  const subject = subjectEl.value.trim();
+  const body = bodyEl.value.trim();
+  const private_key_pem = privateKeyEl.value.trim();
+  const password = passwordEl.value;
+  const files = Array.from(attachmentsEl.files || []);
+
+  if (!uid || !subject || !body || !private_key_pem) {
+    showToast('Completa remitente, asunto, mensaje y clave privada.', 'danger');
+    return;
+  }
+
+  const attachments = [];
+  for (const file of files) {
+    attachments.push({
+      filename: file.name,
+      mime: file.type || "application/octet-stream",
+      content_b64: await fileToBase64(file)
+    });
+  }
+
+  const payload = {
+    uid,
+    recipient,
+    subject,
+    body,
+    private_key_pem: privatekeypem,
+    password,
+    attachments
+  };
+
+  const res = await apiFetch('mail/x509', {
+    method: 'POST',
+    body: JSON.stringify({
+      uid,
+      subject,
+      body,
+      private_key_pem,
+      password,
+      attachments
+    })
+  });
+
+  if (!res || res.error) {
+    showToast(res?.message || 'No se pudo firmar y guardar el correo.', 'danger');
+    return;
+  }
+
+  showToast(`Correo firmado y guardado. ID ${res.id}`, 'success');
+
+  uidEl.value = '';
+  subjectEl.value = '';
+  bodyEl.value = '';
+  privateKeyEl.value = '';
+  passwordEl.value = '';
+  attachmentsEl.value = '';
+
+  closeModal('mail-compose-x509');
+  await loadMails();
 }
 
 // ─── REGISTRO LOCAL DE REVOCACIONES ──────────────────────────────────────────
@@ -1619,20 +1813,12 @@ function renderMailTable() {
   const count = document.getElementById('mail-table-count');
 
   if (badge) badge.textContent = MAILS.length;
-  if (count) {
-    count.textContent = `${MAILS.length} correo${MAILS.length !== 1 ? 's' : ''} firmado${MAILS.length !== 1 ? 's' : ''}`;
-  }
+  if (count) count.textContent = `${MAILS.length} correo${MAILS.length !== 1 ? 's' : ''} firmado${MAILS.length !== 1 ? 's' : ''}`;
 
   if (!body) return;
 
   if (!MAILS.length) {
-    body.innerHTML = `
-      <tr>
-        <td colspan="7" style="text-align:center;padding:32px;color:var(--text-hint);font-size:13px;">
-          No hay correos firmados.
-        </td>
-      </tr>
-    `;
+    body.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-hint);font-size:13px">No hay correos firmados.</td></tr>`;
     return;
   }
 
@@ -1640,19 +1826,20 @@ function renderMailTable() {
     const v = MAILVERIFICATIONS[mail.id];
     const msgOk = v?.message_ok === true;
     const attOk = v?.attachments_ok === true;
-    const msgCls = v ? (msgOk ? "ok" : "bad") : "warn";
-    const msgLabel = v ? (msgOk ? "Válida" : "Inválida") : "Pendiente";
-    const attCls = v ? (attOk ? "ok" : "bad") : "warn";
-    const attLabel = v ? (attOk ? "Íntegros" : "Con error") : "Pendiente";
+    const msgCls = v ? (msgOk ? 'ok' : 'bad') : 'warn';
+    const msgLabel = v ? (msgOk ? 'Válida' : 'Inválida') : 'Pendiente';
+    const attCls = v ? (attOk ? 'ok' : 'bad') : 'warn';
+    const attLabel = v ? (attOk ? 'Íntegros' : 'Con error') : 'Pendiente';
 
     return `
       <tr>
-        <td><span class="user-name">${escapeHtml(mail.sender_uid || "-")}</span></td>
-        <td>${escapeHtml(mail.subject || "sin asunto")}</td>
+        <td>${escapeHtml(mail.sender_uid || '-')}</td>
+        <td>${escapeHtml(mail.recipient || '-')}</td>
+        <td>${escapeHtml(mail.subject || '-')}</td>
         <td><span class="exp-date">${fmtDate(mail.created_at)}</span></td>
         <td><span class="sig-badge ${msgCls}">${msgLabel}</span></td>
         <td><span class="sig-badge ${attCls}">${attLabel}</span></td>
-        <td><span class="sig-meta">${escapeHtml(mail.sender_fingerprint || "-")}</span></td>
+        <td><span class="sig-meta">${escapeHtml(mail.signing_cert_fingerprint || '-')}</span></td>
         <td>
           <div class="action-cell">
             <button class="icon-btn" title="Ver correo" onclick="openMailDetail('${mail.id}')">Ver</button>
@@ -1661,7 +1848,7 @@ function renderMailTable() {
         </td>
       </tr>
     `;
-  }).join("");
+  }).join('');
 }
 
 // ─── FILTROS ──────────────────────────────────────────────────────────────────
@@ -1687,10 +1874,22 @@ function setLevelFilter(val) {
   renderTable();
 }
 
-function showSection(id) {
-  document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-  const el = document.getElementById(id);
-  if (el) el.classList.add('active');
+function showSection(sectionId) {
+  document.querySelectorAll(".content-section").forEach(section => {
+    section.classList.remove("active");
+  });
+
+  const target = document.getElementById(sectionId);
+  if (target) target.classList.add("active");
+
+  const breadcrumbCurrent = document.getElementById("breadcrumb-current");
+  if (breadcrumbCurrent) {
+    if (sectionId === "mail-section") {
+      breadcrumbCurrent.textContent = "Panel de correos";
+    } else {
+      breadcrumbCurrent.textContent = "Panel de administración";
+    }
+  }
 }
 
 function setNav(el) {
@@ -1700,21 +1899,21 @@ function setNav(el) {
 
 // ─── MODALES ──────────────────────────────────────────────────────────────────
 function openModal(type) {
-  document.getElementById(`overlay-${type}`).classList.add('open');
-}
-function closeModal(type) {
-  document.getElementById(`overlay-${type}`).classList.remove('open');
-  // Reset field errors on close
-  if (type === 'new') {
-    clearFieldError('form-name', 'form-name-error');
-    clearFieldError('form-mail', 'form-mail-error');
-  } else if (type === 'edit') {
-    clearFieldError('edit-name', 'edit-name-error');
-    clearFieldError('edit-mail', 'edit-mail-error');
+  const overlay = document.getElementById(`overlay-${type}`);
+  if (!overlay) {
+    console.error(`No existe overlay-${type}`);
+    return;
   }
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
-function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id.replace('overlay-','')); }
 
+function closeModal(type) {
+  const overlay = document.getElementById(`overlay-${type}`);
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
 // ─── VER CERTIFICADO ──────────────────────────────────────────────────────────
 async function showCert(uid) {
   const u    = USERS.find(x => x.id === uid);
@@ -1888,30 +2087,6 @@ function updateNewModalCertVisibility() {
   document.getElementById('new-modal-submit-label').textContent = 'Registrar usuario';
 }
 
-async function registerPgpKey() {
-  const uid = document.getElementById('pgp-uid').value.trim();
-  const public_key_armored = document.getElementById('pgp-public-key').value.trim();
-
-  if (!uid || !public_key_armored) {
-    showToast('UID y clave pública son obligatorios.', 'danger');
-    return;
-  }
-
-  const res = await apiFetch('/pgp/keys', {
-    method: 'POST',
-    body: JSON.stringify({ uid, public_key_armored })
-  });
-
-  if (!res || res.error) {
-    showToast(res?.message || 'No se pudo registrar la clave PGP.', 'danger');
-    return;
-  }
-
-  showToast(`Clave PGP registrada para ${uid}`, 'success');
-  document.getElementById('pgp-uid').value = '';
-  document.getElementById('pgp-public-key').value = '';
-  closeModal('pgpkey');
-}
 
 async function openMailDetail(messageId) {
   const mail = MAILS.find(m => String(m.id) === String(messageId));
@@ -1927,6 +2102,8 @@ async function openMailDetail(messageId) {
   const v = MAIL_VERIFICATIONS[messageId];
   const sigOk = v?.message_ok === true;
   const attOk = v?.attachments_ok === true;
+  document.getElementById('mail-detail-subtitle').textContent =
+    `Firmante: ${v?.signer_uid || mail.sender_uid || '-'}`;
 
   const attachmentsHtml = Array.isArray(mail.attachments) && mail.attachments.length
     ? `
@@ -2058,55 +2235,88 @@ async function createUser() {
     showToast(`Usuario ${name} registrado correctamente`, 'success');
   }
 }
+
+function canonicalizeBody(subject, recipient, body) {
+  return `To: ${recipient}\nSubject: ${subject}\n\n${body}`.replace(/\r\n/g, "\n").trim() + "\n";
+}
+
+
+async function fileToUint8Array(file) {
+  const buf = await file.arrayBuffer();
+  return new Uint8Array(buf);
+}
+
 async function sendSignedMail() {
-  const uid = document.getElementById("mail-uid").value.trim();
-  const subject = document.getElementById("mail-subject").value.trim();
-  const body = document.getElementById("mail-body").value.trim();
-  const private_key_armored = document.getElementById("mail-private-key").value.trim();
-  const password = document.getElementById("mail-password").value;
-  const files = Array.from(document.getElementById("mail-attachments").files);
+  const uid = document.getElementById('mail-uid')?.value.trim() || '';
+  const recipient = document.getElementById('mail-recipient')?.value.trim() || '';
+  const subject = document.getElementById('mail-subject')?.value.trim() || '';
+  const body = document.getElementById('mail-body')?.value.trim() || '';
+  const private_key_pem = document.getElementById('mail-private-key')?.value.trim() || '';
+  const password = document.getElementById('mail-password')?.value || '';
+  const files = Array.from(document.getElementById('mail-attachments')?.files || []);
 
-  if (!uid || !subject || !body || !private_key_armored || !password) {
-    showToast("Completa remitente, asunto, mensaje, clave privada y contraseña.", "danger");
-    return;
-  }
-
-  const attachments = [];
-  for (const file of files) {
-    attachments.push({
-      filename: file.name,
-      mime: file.type || "application/octet-stream",
-      content_b64: await fileToBase64(file)
-    });
-  }
-
-  const res = await apiFetch("mail", {
-    method: "POST",
-    body: JSON.stringify({ uid, subject, body, private_key_armored, password, attachments })
+  console.log('mail fields', {
+    uid,
+    recipient,
+    subject,
+    body,
+    private_key_pem_len: private_key_pem.length,
+    files: files.length
   });
 
-  if (!res || res.error) {
-    showToast(res?.message || "No se pudo firmar el correo.", "danger");
+  if (!uid || !recipient || !subject || !body || !private_key_pem) {
+    showToast('Completa remitente, destinatario, asunto, mensaje y clave privada.', 'danger');
     return;
   }
 
-  showToast(`Correo firmado guardado con id ${res.id}`, "success");
+  try {
+    const attachments = [];
+    for (const file of files) {
+      attachments.push({
+        filename: file.name,
+        mime: file.type || 'application/octet-stream',
+        content_b64: await fileToBase64(file)
+      });
+    }
 
-  document.getElementById("mail-uid").value = "";
-  document.getElementById("mail-subject").value = "";
-  document.getElementById("mail-body").value = "";
-  document.getElementById("mail-private-key").value = "";
-  document.getElementById("mail-password").value = "";
-  document.getElementById("mail-attachments").value = "";
+    const payload = {
+      uid,
+      recipient,
+      subject,
+      body,
+      private_key_pem,
+      password,
+      attachments
+    };
 
-  closeModal("mail-compose");
-  await loadMails();
+    console.log('POST /api/mail/x509', payload);
 
-  showSection("mail-section");
-  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-  const mailNav = Array.from(document.querySelectorAll(".nav-item"))
-    .find(el => el.textContent.includes("Correos PGP"));
-  if (mailNav) mailNav.classList.add("active");
+    const res = await apiFetch('mail/x509', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    if (!res || res.error) {
+      showToast(res?.message || 'No se pudo firmar y guardar el correo.', 'danger');
+      return;
+    }
+
+    showToast(`Correo firmado y guardado. ID ${res.id}`, 'success');
+
+    document.getElementById('mail-uid').value = '';
+    document.getElementById('mail-recipient').value = '';
+    document.getElementById('mail-subject').value = '';
+    document.getElementById('mail-body').value = '';
+    document.getElementById('mail-private-key').value = '';
+    document.getElementById('mail-password').value = '';
+    document.getElementById('mail-attachments').value = '';
+
+    closeModal('mail-compose');
+    await loadMails();
+  } catch (e) {
+    console.error(e);
+    showToast('No se pudo firmar o guardar el correo.', 'danger');
+  }
 }
 
 // ─── CARGA DE CERTIFICADO PEM ─────────────────────────────────────────────────
@@ -2269,8 +2479,12 @@ function setPemStatus(msg, type) {
 
 async function uploadPemCert(uid, name) {
   if (!_pemUploadFile) return;
+
   const btn = document.getElementById('cert-upload-btn');
-  if (btn) { btn.style.opacity = '0.6'; btn.style.pointerEvents = 'none'; }
+  if (btn) {
+    btn.style.opacity = '0.6';
+    btn.style.pointerEvents = 'none';
+  }
 
   setPemStatus('Leyendo archivo…', 'loading');
 
@@ -2279,14 +2493,19 @@ async function uploadPemCert(uid, name) {
     raw = await _pemUploadFile.text();
   } catch (e) {
     setPemStatus('No se pudo leer el archivo. Inténtalo de nuevo.', 'error');
-    if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+    if (btn) {
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    }
     return;
   }
 
-  // Basic PEM sanity check
-  if (!raw.includes('-----BEGIN') || !raw.includes('-----END')) {
-    setPemStatus('El archivo no parece un certificado PEM válido (falta cabecera BEGIN/END).', 'error');
-    if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+  if (!raw.includes('-----BEGIN CERTIFICATE-----') || !raw.includes('-----END CERTIFICATE-----')) {
+    setPemStatus('El archivo no parece un certificado PEM válido.', 'error');
+    if (btn) {
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    }
     return;
   }
 
@@ -2294,20 +2513,22 @@ async function uploadPemCert(uid, name) {
 
   const res = await apiFetch('/certs', {
     method: 'POST',
-    body: JSON.stringify({ uid, raw }),
+    body: JSON.stringify({ raw })
   });
 
   if (!res || res._error) {
     const msg = res?.message || 'Error al subir el certificado.';
     setPemStatus(msg, 'error');
-    if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+    if (btn) {
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    }
     return;
   }
 
   setPemStatus(`Certificado de ${name} cargado correctamente.`, 'success');
   showToast(`Certificado de ${name} registrado`, 'success');
 
-  // Disable upload btn, auto-close after a moment
   setTimeout(() => {
     const dlg = document.getElementById('cert-notice-dialog');
     if (dlg) dlg.remove();
