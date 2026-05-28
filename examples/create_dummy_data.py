@@ -21,6 +21,8 @@ from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+from certutil import create_ck, create_usr_x509
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              "..")))
 
@@ -29,55 +31,6 @@ from src import db
 
 # Utility functions
 indir = lambda filename: os.path.join(os.path.dirname(__file__), filename)
-org_unit = lambda u: u["dept"] + "," + u["lvl"]
-
-def create_ck(key_size, key_file, cert_file, issuer, subject, signing_key=None):
-    # Generate the key
-    key = rsa.generate_private_key(
-        public_exponent=65537, # 2^16 + 1, Fermat prime and efficient for computing
-        key_size=key_size      # Minimum is 2048
-    )
-
-    # Save private key to a file
-    with open(indir(key_file), "wb") as f:
-        f.write(key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption()
-        ))
-
-    # Create certificate
-    cert = x509.CertificateBuilder().\
-        subject_name(subject).\
-        issuer_name(issuer).\
-        public_key(key.public_key()).\
-        serial_number(x509.random_serial_number()).\
-        not_valid_before(datetime.datetime.now()).\
-        not_valid_after(datetime.datetime.now() + datetime.timedelta(weeks=4))
-
-    if signing_key is None: # Self-sign
-        signing_key = key
-    
-    cert = cert.sign(signing_key, hashes.SHA256())
-
-    # Save the certificate to a file
-    with open(indir(cert_file), "wb") as f:
-        f.write(cert.public_bytes(serialization.Encoding.PEM))
-
-    return cert, key
-
-def create_usr_x509(usr, num):
-    return x509.Name([
-        x509.NameAttribute(NameOID.COUNTRY_NAME, "MX"),
-        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "Nuevo León"),
-        x509.NameAttribute(NameOID.LOCALITY_NAME, "Monterrey"),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME,
-                           "Casa Monarca DUMMY TEST NOT REAL"),
-        x509.NameAttribute(NameOID.GIVEN_NAME, usr["name"]),
-        x509.NameAttribute(NameOID.EMAIL_ADDRESS, usr["mail"]),
-        x509.NameAttribute(NameOID.SERIAL_NUMBER, num),
-        x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, org_unit(usr))
-    ])
 
 def add_cert(mail, cert):
     return db.add_cert(db.list_users(mail=mail)[0]["id"], cert)
@@ -91,7 +44,8 @@ sissuer = ssubject = x509.Name([
                        "Casa Monarca DUMMY TEST NOT REAL"),
     x509.NameAttribute(NameOID.COMMON_NAME, "casamonarca.mx")
 ])
-scert, skey = create_ck(3072, "srv_key.pem", "srv_cert.pem", sissuer, ssubject)
+scert, skey = create_ck(3072, indir("srv_key.pem"), indir("srv_cert.pem"),
+                        sissuer, ssubject)
 
 # Database
 if not db.init(indir("dummy.json")):
@@ -136,17 +90,17 @@ list(map(lambda u: upd(dummy_user_ids, u["mail"], db.add_user(**u)), dummy_users
 
 # Write certificates
 aissuer = asubject = create_usr_x509(admin, dummy_user_ids[admin["mail"]])
-acert, akey = create_ck(2048, "admin_key.pem", "admin_cert.pem", aissuer,
-                        asubject)
+acert, akey = create_ck(2048, indir("admin_key.pem"), indir("admin_cert.pem"),
+                        aissuer, asubject)
 bissuer = bsubject = create_usr_x509(badmin, dummy_user_ids[badmin["mail"]])
-bcert, bkey = create_ck(2048, "badmin_key.pem", "badmin_cert.pem", bissuer,
-                        bsubject)
+bcert, bkey = create_ck(2048, indir("badmin_key.pem"),
+                        indir("badmin_cert.pem"), bissuer, bsubject)
 c1subject = create_usr_x509(lopez, dummy_user_ids[lopez["mail"]])
-c1cert, c1key = create_ck(2048, "lopez_key.pem", "lopez_cert.pem", asubject,
-                          c1subject, akey)
+c1cert, c1key = create_ck(2048, indir("lopez_key.pem"),
+                          indir("lopez_cert.pem"), asubject, c1subject, akey)
 c2subject = create_usr_x509(morales, dummy_user_ids[morales["mail"]])
-c2cert, c2key = create_ck(2048, "morales_key.pem", "morales_cert.pem",
-                          asubject, c2subject, akey)
+c2cert, c2key = create_ck(2048, indir("morales_key.pem"),
+                          indir("morales_cert.pem"), asubject, c2subject, akey)
 if len(db.list_certs()) != 0: exit()
 
 add_cert(admin["mail"], acert)
