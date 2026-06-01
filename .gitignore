@@ -12,3 +12,7 @@ dist/*
 
 */*.egg-info/*
 TODO.txt
+
+.env
+*_backup.json
+test_db.json

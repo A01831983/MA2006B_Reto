@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Iniciar sesión — Casa Monarca</title>
+  <style>
+    @font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url(https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYthqQBK6PYK0.woff2) format('woff2'); }
+    @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2) format('woff2'); }
+    @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 500; font-display: swap; src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2) format('woff2'); }
+    @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2) format('woff2'); }
+  </style>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-50: #E1F5EE;
+      --green-100: #9FE1CB;
+      --green-500: #1D9E75;
+      --green-700: #0F6E56;
+      --green-900: #085041;
+      --red-50: #FCEBEB;
+      --red-500: #E24B4A;
+      --red-700: #A32D2D;
+      --gray-50: #F7F6F3;
+      --gray-100: #EDECEA;
+      --gray-200: #D3D1C7;
+      --gray-400: #888780;
+      --gray-600: #5F5E5A;
+      --gray-800: #2C2C2A;
+      --gray-900: #1A1A18;
+      --surface: #FFFFFF;
+      --surface-2: #F7F6F3;
+      --text-primary: #1A1A18;
+      --text-secondary: #5F5E5A;
+      --text-hint: #888780;
+      --border: rgba(0,0,0,0.1);
+      --border-md: rgba(0,0,0,0.15);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+      --shadow-lg: 0 20px 48px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --font: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--surface-2);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      width: 420px;
+      max-width: 100%;
+      overflow: hidden;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-header {
+      padding: 32px 32px 24px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-mark {
+      width: 48px; height: 48px;
+      background: var(--green-500);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+      box-shadow: 0 2px 12px rgba(29,158,117,0.35);
+    }
+
+    .logo-mark svg { width: 26px; height: 26px; }
+
+    .login-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .login-subtitle {
+      font-size: 13px;
+      color: var(--text-hint);
+      margin-top: 4px;
+    }
+
+    .login-body {
+      padding: 24px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+    .form-label {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .form-input {
+      font-family: var(--font);
+      font-size: 14px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-md);
+      background: var(--surface-2);
+      color: var(--text-primary);
+      outline: none;
+      transition: border 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+
+    .form-input:focus {
+      border-color: var(--green-100);
+      box-shadow: 0 0 0 3px rgba(29,158,117,0.1);
+      background: var(--surface);
+    }
+
+    .form-input.error {
+      border-color: var(--red-500);
+      box-shadow: 0 0 0 3px rgba(226,75,74,0.1);
+    }
+
+    .error-message {
+      font-size: 12.5px;
+      color: var(--red-700);
+      background: var(--red-50);
+      border: 1px solid var(--red-500);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .error-message.show { display: block; }
+
+    .btn {
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 11px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--green-700);
+      background: var(--green-500);
+      color: white;
+      cursor: pointer;
+      transition: all 0.12s;
+      box-shadow: 0 1px 4px rgba(29,158,117,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn:hover:not(:disabled) { background: var(--green-700); }
+    .btn:active:not(:disabled) { transform: scale(0.985); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .login-footer {
+      padding: 16px 32px;
+      background: var(--surface-2);
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-hint);
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .spinner.show { display: inline-block; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="login-header">
+    <div class="logo-mark">
+      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 2L17 6V14L10 18L3 14V6L10 2Z" stroke="white" stroke-width="1.4" fill="none"/>
+        <circle cx="10" cy="10" r="2.5" fill="white"/>
+        <path d="M10 7.5V10" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="login-title">Casa Monarca</div>
+    <div class="login-subtitle">Gestor de Identidades</div>
+  </div>
+
+  <div class="login-body">
+    <div id="error-box" class="error-message"></div>
+
+    <div class="form-group">
+      <label class="form-label" for="email">Correo institucional</label>
+      <input
+        id="email"
+        class="form-input"
+        type="email"
+        placeholder="usuario@casamonarca.mx"
+        autocomplete="username"
+        autofocus
+      />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="password">Contraseña</label>
+      <input
+        id="password"
+        class="form-input"
+        type="password"
+        placeholder="••••••••"
+        autocomplete="current-password"
+      />
+    </div>
+
+    <button id="submit-btn" class="btn" onclick="doLogin()">
+      <span id="submit-label">Iniciar sesión</span>
+      <span id="spinner" class="spinner"></span>
+    </button>
+  </div>
+
+  <div class="login-footer">
+    Equipo de Trabajo 2 — Grupo 603
+  </div>
+</div>
+
+<script>
+  const API = "http://127.0.0.1:8000/api";
+
+  async function doLogin() {
+    const email = document.getElementById("email").value.trim().toLowerCase();
+    const password = document.getElementById("password").value;
+    const errorBox = document.getElementById("error-box");
+    const submitBtn = document.getElementById("submit-btn");
+    const submitLabel = document.getElementById("submit-label");
+    const spinner = document.getElementById("spinner");
+
+    errorBox.classList.remove("show");
+    document.getElementById("email").classList.remove("error");
+    document.getElementById("password").classList.remove("error");
+
+    if (!email || !password) {
+      showError("Ingresa tu correo y contraseña.");
+      if (!email) document.getElementById("email").classList.add("error");
+      if (!password) document.getElementById("password").classList.add("error");
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitLabel.textContent = "Verificando...";
+    spinner.classList.add("show");
+
+    try {
+      const res = await fetch(API + "/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mail: email, password: password })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(data.message || "Error al iniciar sesión.");
+        document.getElementById("email").classList.add("error");
+        document.getElementById("password").classList.add("error");
+        return;
+      }
+
+      sessionStorage.setItem("auth_token", data.token);
+      sessionStorage.setItem("auth_user", JSON.stringify({
+        uid: data.uid,
+        name: data.name,
+        lvl: data.lvl,
+        dept: data.dept
+      }));
+
+      if (data.must_change_password) {
+        window.location.href = "/change-password";
+      } else {
+        window.location.href = "/";
+      }
+    } catch (e) {
+      showError("No se pudo conectar con el servidor. Verifica que esté corriendo.");
+      console.error(e);
+    } finally {
+      submitBtn.disabled = false;
+      submitLabel.textContent = "Iniciar sesión";
+      spinner.classList.remove("show");
+    }
+  }
+
+  function showError(msg) {
+    const errorBox = document.getElementById("error-box");
+    errorBox.textContent = msg;
+    errorBox.classList.add("show");
+  }
+
+  document.getElementById("password").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") doLogin();
+  });
+
+  document.getElementById("email").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") doLogin();
+  });
+</script>
+
+</body>
+</html>

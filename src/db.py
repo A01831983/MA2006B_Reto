@@ -19,6 +19,7 @@ from cryptography.hazmat.primitives import serialization
 db = None
 users = None
 certs = None
+auth_table = None
 
 def init(filename):
     global db, users, certs, cert_data
@@ -225,7 +226,7 @@ mail_messages = None
 mail_attachments = None
 
 def init(filename):
-    global db, users, certs, mail_messages, mail_attachments
+    global db, users, certs, mail_messages, mail_attachments, auth_table
 
     ldb = tinydb.TinyDB(filename)
     if not _validate_db(ldb):
@@ -236,6 +237,7 @@ def init(filename):
     certs = db.table("certs")
     mail_messages = db.table("mail_messages")
     mail_attachments = db.table("mail_attachments")
+    auth_table = db.table("auth")
     return True
 
 def add_mail_message(sender_uid: str, recipient: str, subject: str, body: str, body_sig: str, cert_id: str, cert_fpr: str):
@@ -286,3 +288,34 @@ def get_mail_attachments(message_id: str):
 def get_cert(cid: str):
     ret = list_certs(cid=cid)
     return ret[0] if len(ret) == 1 else None
+
+# auth_db
+def get_auth(uid: str):
+    Q = tinydb.Query()
+    ret = auth_table.search(Q.uid == uid)
+    return ret[0] if len(ret) == 1 else None
+
+def set_auth(uid: str, password_hash: str, must_change: bool = True):
+    Q = tinydb.Query()
+    existing = auth_table.search(Q.uid == uid)
+
+    rec = {
+        "uid": uid,
+        "password_hash": password_hash,
+        "must_change_password": must_change,
+        "updated_at": datetime.utcnow().isoformat()
+    }
+
+    if len(existing) == 0:
+        rec["created_at"] = rec["updated_at"]
+        auth_table.insert(rec)
+    else:
+        auth_table.update(rec, Q.uid == uid)
+
+def delete_auth(uid: str):
+    Q = tinydb.Query()
+    auth_table.remove(Q.uid == uid)
+
+def clear_must_change(uid: str):
+    Q = tinydb.Query()
+    auth_table.update({"must_change_password": False}, Q.uid == uid)

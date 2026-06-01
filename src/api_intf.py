@@ -42,6 +42,7 @@ lvls = tuple(l.value for l in LevelEnum)
 
 def register(api, db_filename):
     db.init(db_filename) # Open database
+    _bootstrap_admin()
 
     # Schemas
     user_model = {
@@ -641,6 +642,7 @@ def register(api, db_filename):
                 "details": "Valid signature" if body_ok and atts_ok else "Invalid signature or modified content"
             }
 #'''
+    register_auth_endpoints(api)
 
     return api
 
@@ -677,3 +679,169 @@ def _des_date(d):
 
 def _des_date_err(field_name, v):
     return f"Invalid format for '{field_name}': Shall be date as in YYYY-MM-DD"
+
+# ─── AUTHENTICATION ENDPOINTS ─────────────────────────────────────────────────
+
+def register_auth_endpoints(api):
+    from . import auth
+
+    login_model = api.model("AuthLogin", {
+        "mail": StrField("Email address", required=True),
+        "password": StrField("Password", required=True)
+    })
+
+    login_reply_model = api.model("AuthLoginReply", {
+        "token": StrField("JWT access token", required=True),
+        "must_change_password": fields.Boolean(required=True),
+        "uid": StrField("User ID", required=True),
+        "name": StrField("Full name", required=True),
+        "lvl": StrField("Access level", required=True),
+        "dept": StrField("Department", required=True)
+    })
+
+    me_reply_model = api.model("AuthMeReply", {
+        "uid": StrField("User ID", required=True),
+        "name": StrField("Full name", required=True),
+        "mail": StrField("Email address", required=True),
+        "lvl": StrField("Access level", required=True),
+        "dept": StrField("Department", required=True),
+        "must_change_password": fields.Boolean(required=True)
+    })
+
+    change_pwd_model = api.model("AuthChangePassword", {
+        "old_password": StrField("Current password", required=True),
+        "new_password": StrField("New password", required=True)
+    })
+
+    def _get_current_user():
+        header = request.headers.get("Authorization", "")
+        if not header.startswith("Bearer "):
+            return None
+
+        token = header[7:].strip()
+        payload = auth.decode_jwt(token)
+        if payload is None:
+            return None
+
+        usrs = db.list_users(uid=payload["uid"])
+        if len(usrs) != 1:
+            return None
+
+        return usrs[0]
+
+    @api.route("/auth/login")
+    class AuthLogin(Resource):
+        @api.expect(login_model)
+        @api.marshal_with(login_reply_model)
+        def post(self):
+            mail = api.payload.get("mail", "").strip().lower()
+            password = api.payload.get("password", "")
+
+            if not mail or not password:
+                api.abort(400, "Email and password are required")
+
+            usrs = db.list_users(mail=mail)
+            if len(usrs) != 1:
+                api.abort(401, "Invalid credentials")
+
+            usr = usrs[0]
+
+            auth_rec = db.get_auth(usr["id"])
+            if auth_rec is None:
+                api.abort(401, "Invalid credentials")
+
+            if not auth.verify_password(password, auth_rec["password_hash"]):
+                api.abort(401, "Invalid credentials")
+
+            token = auth.create_jwt(usr["id"], usr["lvl"], usr["dept"])
+
+            return {
+                "token": token,
+                "must_change_password": auth_rec.get("must_change_password", False),
+                "uid": usr["id"],
+                "name": usr["name"],
+                "lvl": usr["lvl"],
+                "dept": usr["dept"]
+            }
+
+    @api.route("/auth/me")
+    class AuthMe(Resource):
+        @api.marshal_with(me_reply_model)
+        def get(self):
+            usr = _get_current_user()
+            if usr is None:
+                api.abort(401, "Not authenticated")
+
+            auth_rec = db.get_auth(usr["id"])
+            must_change = auth_rec.get("must_change_password", False) if auth_rec else False
+
+            return {
+                "uid": usr["id"],
+                "name": usr["name"],
+                "mail": usr["mail"],
+                "lvl": usr["lvl"],
+                "dept": usr["dept"],
+                "must_change_password": must_change
+            }
+
+    @api.route("/auth/change-password")
+    class AuthChangePassword(Resource):
+        @api.expect(change_pwd_model)
+        def post(self):
+            usr = _get_current_user()
+            if usr is None:
+                api.abort(401, "Not authenticated")
+
+            old_password = api.payload.get("old_password", "")
+            new_password = api.payload.get("new_password", "")
+
+            if not old_password or not new_password:
+                api.abort(400, "Both old_password and new_password are required")
+
+            if len(new_password) < 8:
+                api.abort(400, "New password must be at least 8 characters")
+
+            auth_rec = db.get_auth(usr["id"])
+            if auth_rec is None:
+                api.abort(400, "User has no auth record")
+
+            if not auth.verify_password(old_password, auth_rec["password_hash"]):
+                api.abort(401, "Old password is incorrect")
+
+            new_hash = auth.hash_password(new_password)
+            db.set_auth(usr["id"], new_hash, must_change=False)
+
+            return {"status": "ok"}, 200
+
+    @api.route("/auth/logout")
+    class AuthLogout(Resource):
+        def post(self):
+            return {"status": "ok"}, 200
+        
+# ─── BOOTSTRAP ────────────────────────────────────────────────────────────────
+
+def _bootstrap_admin():
+    from . import auth
+
+    existing = db.list_users()
+    if len(existing) > 0:
+        return
+
+    print("=" * 60)
+    print("Bootstrapping initial admin user...")
+
+    uid = db.add_user(
+        name="Administrador Casa Monarca",
+        dept="TI",
+        lvl="admin",
+        mail="admin@casamonarca.mx",
+        joined=date.today()
+    )
+
+    password_hash = auth.hash_password("admin123")
+    db.set_auth(uid, password_hash, must_change=True)
+
+    print(f"  Email:    admin@casamonarca.mx")
+    print(f"  Password: admin123 (must change on first login)")
+    print(f"  UID:      {uid}")
+    print("=" * 60)
