@@ -739,11 +739,13 @@ def register_auth_endpoints(api):
             if not mail or not password:
                 api.abort(400, "Email and password are required")
 
-            usrs = db.list_users(mail=mail)
-            if len(usrs) != 1:
+            all_users = db.list_users()
+            matches = [u for u in all_users if u["mail"].lower() == mail]
+
+            if len(matches) != 1:
                 api.abort(401, "Invalid credentials")
 
-            usr = usrs[0]
+            usr = matches[0]
 
             auth_rec = db.get_auth(usr["id"])
             if auth_rec is None:
@@ -822,20 +824,30 @@ def register_auth_endpoints(api):
 def _bootstrap_admin():
     from . import auth
 
-    existing = db.list_users()
-    if len(existing) > 0:
+    existing_auth = db.auth_table.all() if db.auth_table is not None else []
+    if len(existing_auth) > 0:
         return
 
     print("=" * 60)
     print("Bootstrapping initial admin user...")
 
-    uid = db.add_user(
-        name="Administrador Casa Monarca",
-        dept="TI",
-        lvl="admin",
-        mail="admin@casamonarca.mx",
-        joined=date.today()
+    all_users = db.list_users()
+    existing_admin = next(
+        (u for u in all_users if u["mail"].lower() == "admin@casamonarca.mx"),
+        None
     )
+
+    if existing_admin is not None:
+        uid = existing_admin["id"]
+        print("  An admin user with this email already exists, reusing it.")
+    else:
+        uid = db.add_user(
+            name="Administrador Casa Monarca",
+            dept="TI",
+            lvl="admin",
+            mail="admin@casamonarca.mx",
+            joined=date.today()
+        )
 
     password_hash = auth.hash_password("admin123")
     db.set_auth(uid, password_hash, must_change=True)

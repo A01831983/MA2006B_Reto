@@ -21,19 +21,6 @@ users = None
 certs = None
 auth_table = None
 
-def init(filename):
-    global db, users, certs, cert_data
-
-    ldb = tinydb.TinyDB(filename)
-    if not _validate_db(ldb):
-        return False
-
-    db = ldb
-
-    users = db.table("users")
-    certs = db.table("certs")
-
-    return True
 
 def _validate_db(db):
     users = db.table("users")

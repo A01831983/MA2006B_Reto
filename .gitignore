@@ -16,3 +16,4 @@ TODO.txt
 .env
 *_backup.json
 test_db.json
+examples/dummy.json
