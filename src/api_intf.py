@@ -65,7 +65,11 @@ def register(api, db_filename):
 
     usercreatereply_model = {
         "id": StrField("The permament ID of the freshly created user",
-                       required=True)
+                       required=True),
+        "temp_password": StrField("The temporary password assigned to the user. "
+                                  "Must be shared with the user; they will be "
+                                  "asked to change it on first login.",
+                                  required=True)
     }
     UserCreateReply_m = api.model("UserCreateReply", usercreatereply_model)
 
@@ -211,6 +215,8 @@ def register(api, db_filename):
         @api.marshal_with(UserCreateReply_m)
         @api.doc(description="Create a new user")
         def post(self):
+            from . import auth
+
             if "mail" in api.payload.keys():
                 if not validators.email(api.payload["mail"]):
                     api.abort(400, "'mail' must be a valid email")
@@ -222,11 +228,15 @@ def register(api, db_filename):
                 api.abort(400, _des_date_err("joined", api.payload["joined"]))
 
             try:
-                ret = db.add_user(**api.payload)
+                new_uid = db.add_user(**api.payload)
             except Exception as e:
                 api.abort(400, f"Error adding user to database: {e}")
-            
-            return {"id": ret}
+
+            temp_password = auth.generate_temp_password()
+            password_hash = auth.hash_password(temp_password)
+            db.set_auth(new_uid, password_hash, must_change=True)
+
+            return {"id": new_uid, "temp_password": temp_password}
 
         @api.doc(params={
             "uid": {"description": "The id of the user which to modify (must match uniquely)",
