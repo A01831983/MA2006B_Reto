@@ -36,7 +36,6 @@ class LevelEnum(Enum):
     Coordinador = "coordinador"
     Operativo = "operativo"
     Captura = "captura"
-    Voluntario = "captura"
 lvls = tuple(l.value for l in LevelEnum)
 
 
@@ -53,7 +52,7 @@ def register(api, db_filename):
                           required=True),
         "lvl": EnumField(LevelEnum, description="Access level of the user",
                          required=True,
-                         default=LevelEnum.Voluntario.value),
+                         default=LevelEnum.Captura.value),
         "mail": StrField("Email address of the user", required=True),
         "joined": fields.Date(description="When the user entered the organisation",
                               required=True)
@@ -77,7 +76,7 @@ def register(api, db_filename):
                           required=False),
         "lvl": EnumField(LevelEnum, description="Access level of the user",
                          required=False,
-                         default=LevelEnum.Voluntario.value),
+                         default=LevelEnum.Captura.value),
         "mail": StrField("Email address of the user", required=False),
         "joined": fields.Date(description="When the user entered the organisation",
                               required=False)
