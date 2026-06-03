@@ -65,6 +65,21 @@ genera automáticamente una contraseña temporal aleatoria y la muestra en panta
 administrador debe comunicarla al nuevo usuario, quien estará obligado a cambiarla en su primer
 inicio de sesión. La contraseña no se vuelve a mostrar después de cerrar el aviso.
 
+### Permisos por nivel
+El sistema implementa control de acceso por roles. Las acciones permitidas dependen del nivel
+del usuario que las solicita:
+
+| Rol                  | Crea usuarios          | Edita usuarios                                  | Elimina | Revoca certificados |
+| -------------------- | ---------------------- | ----------------------------------------------- | ------- | ------------------- |
+| Administrador (N1)   | Cualquier nivel        | Cualquiera                                      | Sí      | Sí                  |
+| Coordinador (N2)     | Solo Operativo/Captura | Solo Operativo/Captura de su mismo departamento | No      | No                  |
+| Operativo (N3)       | No                     | No                                              | No      | No                  |
+| Captura (N4)         | No                     | No                                              | No      | No                  |
+
+Estas restricciones se aplican tanto en la interfaz (ocultando opciones no disponibles) como
+en el backend (rechazando peticiones no autorizadas con un código 403). Los operativos y los
+usuarios de captura sólo pueden consultar su propio perfil.
+
 ### Interfaz para debugging y documentación
 Hay una interfaz para debugging que también incluye documentación en `http://localhost:8000/api/docs`.
 

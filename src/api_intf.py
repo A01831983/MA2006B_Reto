@@ -217,6 +217,20 @@ def register(api, db_filename):
         def post(self):
             from . import auth
 
+            actor = _get_current_user_from_token()
+            if actor is None:
+                api.abort(401, "Authentication required")
+
+            target_lvl = api.payload.get("lvl", "")
+
+            if actor["lvl"] == "admin":
+                pass
+            elif actor["lvl"] == "coordinador":
+                if target_lvl not in ("operativo", "captura"):
+                    api.abort(403, "Coordinators can only create operativo or captura users")
+            else:
+                api.abort(403, "You are not allowed to create users")
+
             if "mail" in api.payload.keys():
                 if not validators.email(api.payload["mail"]):
                     api.abort(400, "'mail' must be a valid email")
@@ -244,11 +258,30 @@ def register(api, db_filename):
         }, description="Change the data of a specific user")
         @api.expect(UserModify_m)
         def patch(self):
+            actor = _get_current_user_from_token()
+            if actor is None:
+                api.abort(401, "Authentication required")
+
             args = uid_p.parse_args()
 
             usrs = db.list_users(uid=args["uid"])
             if len(usrs) != 1:
                 api.abort(400, _not_unique_err("uid", "user", len(usrs)))
+
+            target_user = usrs[0]
+
+            if actor["lvl"] == "admin":
+                pass
+            elif actor["lvl"] == "coordinador":
+                if target_user["dept"] != actor["dept"]:
+                    api.abort(403, "Coordinators can only edit users in their own department")
+                if target_user["lvl"] not in ("operativo", "captura"):
+                    api.abort(403, "Coordinators can only edit operativo or captura users")
+                new_lvl = api.payload.get("lvl")
+                if new_lvl and new_lvl not in ("operativo", "captura"):
+                    api.abort(403, "Coordinators cannot promote users to admin or coordinador")
+            else:
+                api.abort(403, "You are not allowed to edit users")
 
             if "mail" in api.payload.keys():
                 if not validators.email(api.payload["mail"]):
@@ -689,8 +722,32 @@ def _des_date(d):
 def _des_date_err(field_name, v):
     return f"Invalid format for '{field_name}': Shall be date as in YYYY-MM-DD"
 
-# ─── AUTHENTICATION ENDPOINTS ─────────────────────────────────────────────────
+# ─── AUTHENTICATION HELPERS (used by other endpoints) ────────────────────────
 
+def _get_current_user_from_token():
+    """Decodifica el JWT del header Authorization y devuelve el usuario actual.
+    Devuelve None si no hay token, el token es inválido, o el usuario no existe.
+    """
+    from . import auth
+
+    header = request.headers.get("Authorization", "")
+    if not header.startswith("Bearer "):
+        return None
+
+    token = header[7:].strip()
+    payload = auth.decode_jwt(token)
+    if payload is None:
+        return None
+
+    all_users = db.list_users()
+    matches = [u for u in all_users if u["id"] == payload["uid"]]
+
+    if len(matches) != 1:
+        return None
+
+    return matches[0]
+
+# ─── AUTHENTICATION ENDPOINTS ─────────────────────────────────────────────────
 def register_auth_endpoints(api):
     from . import auth
 

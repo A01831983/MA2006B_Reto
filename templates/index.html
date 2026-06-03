@@ -1429,6 +1429,13 @@ function canDo(action, targetUser) {
     case 'create_user':
       return myLvl === 'admin' || myLvl === 'coordinador';
 
+    case 'create_user_level':
+      if (myLvl === 'admin') return true;
+      if (myLvl === 'coordinador') {
+        return targetUser === 'operativo' || targetUser === 'captura';
+      }
+      return false;
+
     case 'view_cert':
       if (myLvl === 'admin' || myLvl === 'coordinador') return true;
       return targetUser && targetUser.id === CURRENT_USER.uid;
@@ -1436,7 +1443,8 @@ function canDo(action, targetUser) {
     case 'edit_user':
       if (myLvl === 'admin') return true;
       if (myLvl === 'coordinador') {
-        return targetUser && targetUser.dept === myDept;
+        if (!targetUser || targetUser.dept !== myDept) return false;
+        return targetUser.lvl === 'operativo' || targetUser.lvl === 'captura';
       }
       return false;
 
@@ -2263,6 +2271,12 @@ function openTempPwdModal({ mail, name, temp_password }) {
 
 function closeTempPwdModal() {
   document.getElementById('modal-temp-pwd').style.display = 'none';
+
+  if (window.__PENDING_CERT_USER) {
+    const { name, uid } = window.__PENDING_CERT_USER;
+    window.__PENDING_CERT_USER = null;
+    showCertUploadNotice(name, uid);
+  }
 }
 
 async function copyTempPwd() {
@@ -2354,16 +2368,21 @@ async function createUser() {
 
   await loadAll();
 
+  // Si el nivel requiere certificado, registrar el usuario como pendiente
+  // para que el modal de carga aparezca después del de contraseña temporal
+  const lvlMeta = LEVEL_META[lvl];
+  if (lvlMeta && lvlMeta.hasCert) {
+    window.__PENDING_CERT_USER = { name, uid };
+  }
+
   // Mostrar contraseña temporal generada por el backend
   if (tempPassword) {
     openTempPwdModal({ mail, name, temp_password: tempPassword });
-  }
-
-  // Mostrar diálogo de carga de certificado (solo si el nivel requiere cert)
-  const lvlMeta = LEVEL_META[lvl];
-  if (lvlMeta && lvlMeta.hasCert) {
+  } else if (lvlMeta && lvlMeta.hasCert) {
+    // No hubo contraseña temporal pero sí cert pendiente: abrir cert directamente
+    window.__PENDING_CERT_USER = null;
     showCertUploadNotice(name, uid);
-  } else if (!tempPassword) {
+  } else {
     showToast(`Usuario ${name} registrado correctamente`, 'success');
   }
 }
@@ -2849,6 +2868,20 @@ function setupSidebar(user) {
 
     const breadcrumb = document.getElementById('breadcrumb-current');
     if (breadcrumb) breadcrumb.textContent = 'Mi perfil';
+  }
+  
+  // Filtrar opciones del select de nivel según el rol actual
+  const levelSelect = document.getElementById('form-level');
+  if (levelSelect) {
+    Array.from(levelSelect.options).forEach(opt => {
+      if (!canDo('create_user_level', opt.value)) {
+        opt.remove();
+      }
+    });
+    // Reseleccionar la primera opción válida si la actual quedó fuera
+    if (levelSelect.options.length > 0) {
+      levelSelect.selectedIndex = 0;
+    }
   }
 }
 
