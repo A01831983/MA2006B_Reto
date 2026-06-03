@@ -1424,7 +1424,7 @@ function canDo(action, targetUser) {
 
   switch (action) {
     case 'view_mail_section':
-      return myLvl === 'admin' || myLvl === 'coordinador';
+      return true;
 
     case 'create_user':
       return myLvl === 'admin' || myLvl === 'coordinador';
