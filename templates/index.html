@@ -1273,6 +1273,24 @@
   </div>
 </div>
 
+<!-- MODAL DETALLE DEL CORREO -->
+
+<div class="overlay" id="overlay-mail-detail" onclick="closeModalOutside(event,'overlay-mail-detail')">
+  <div class="modal" style="width:760px;max-width:calc(100vw - 40px);">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="mail-detail-title">Correo firmado</div>
+        <div class="modal-subtitle" id="mail-detail-subtitle">Verificación</div>
+      </div>
+      <button class="icon-btn" onclick="closeModal('mail-detail')">×</button>
+    </div>
+    <div class="modal-body" id="mail-detail-body"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('mail-detail')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: DETALLE CERTIFICADO -->
 <div class="overlay" id="overlay-cert" onclick="closeModalOutside(event,'overlay-cert')">
   <div class="modal">
@@ -1331,23 +1349,6 @@
   </div>
 </div>
 
-<!-- MODAL DETALLE DEL CORREO -->
-
-<div class="overlay" id="overlay-mail-detail" onclick="closeModalOutside(event,'overlay-mail-detail')">
-  <div class="modal" style="width:760px;max-width:calc(100vw - 40px);">
-    <div class="modal-head">
-      <div>
-        <div class="modal-title" id="mail-detail-title">Correo firmado</div>
-        <div class="modal-subtitle" id="mail-detail-subtitle">Verificación</div>
-      </div>
-      <button class="icon-btn" onclick="closeModal('mail-detail')">×</button>
-    </div>
-    <div class="modal-body" id="mail-detail-body"></div>
-    <div class="modal-foot">
-      <button class="btn" onclick="closeModal('mail-detail')">Cerrar</button>
-    </div>
-  </div>
-</div>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
