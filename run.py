@@ -4,7 +4,7 @@
 Runs the API backend.
 """
 
-__author__ = "Henning Arvid Ladewig"
+__author__ = "Henning Arvid Ladewig, Valeria Arciga Valencia, Ximena Montes Bautista"
 
 import os
 import sys
@@ -77,6 +77,10 @@ def login():
 @app.route("/change-password")
 def change_password():
     return render_template("change_password.html")
+
+@app.route("/verify/<string:token>")
+def verify_page(token):
+    return render_template("verify.html")
 
 if __name__ == "__main__":
     app.run(debug=True, port=8000)

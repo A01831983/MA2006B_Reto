@@ -4,7 +4,7 @@
 Provides access to the database.
 """
 
-__author__ = "Henning Arvid Ladewig"
+__author__ = "Henning Arvid Ladewig, Valeria Arciga Valencia, Ximena Montes Bautista"
 
 
 import random
@@ -227,18 +227,35 @@ def init(filename):
     auth_table = db.table("auth")
     return True
 
-def add_mail_message(sender_uid: str, recipient: str, subject: str, body: str, body_sig: str, cert_id: str, cert_fpr: str):
+def add_mail_message(sender_uid, recipient, subject, body, body_sig, cert_id, cert_fpr,
+                     validation_token=None, validation_url=None, expires_at=None):
     mid = str(len(mail_messages) + 1)
+    body_raw = body
+    body_display = body_raw
+
+    if validation_url is not None:
+        body_display = (
+            body_raw
+            + "\n\n---\n\n"
+            + "Este correo fue firmado digitalmente por Casa Monarca.\n"
+            + "Verifique su autenticidad en: "
+            + validation_url
+        )
+
     rec = {
         "id": mid,
         "sender_uid": sender_uid,
         "recipient": recipient,
         "subject": subject,
-        "body": body,
+        "body": body_display,
+        "body_raw": body_raw,
         "body_sig": body_sig,
         "cert_id": cert_id,
         "signing_cert_fingerprint": cert_fpr,
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.utcnow().isoformat() + "Z",
+        "validation_token": validation_token,
+        "expires_at": expires_at,
+        "token_used": False
     }
     mail_messages.insert(rec)
     return mid
@@ -276,6 +293,15 @@ def get_cert(cid: str):
     ret = list_certs(cid=cid)
     return ret[0] if len(ret) == 1 else None
 
+def get_mail_message_by_token(token):
+    Q = tinydb.Query()
+    ret = mail_messages.search(Q.validation_token == token)
+    return ret[0] if len(ret) == 1 else None
+
+def mark_token_used(token):
+    Q = tinydb.Query()
+    mail_messages.update({"token_used": True}, Q.validation_token == token)
+
 # auth_db
 def get_auth(uid: str):
     Q = tinydb.Query()
@@ -290,7 +316,7 @@ def set_auth(uid: str, password_hash: str, must_change: bool = True):
         "uid": uid,
         "password_hash": password_hash,
         "must_change_password": must_change,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.utcnow().isoformat() + "Z"
     }
 
     if len(existing) == 0:

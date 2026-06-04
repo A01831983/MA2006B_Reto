@@ -4,10 +4,12 @@
 Defines the API interface of the gestor.
 """
 
-__author__ = "Henning Arvid Ladewig"
+__author__ = "Henning Arvid Ladewig, Ximena Montes Bautista, Valeria Arciga Valencia"
 
 from enum import Enum
-from datetime import date, datetime
+import os
+from datetime import date, datetime, timedelta
+import secrets
 
 from flask import jsonify, render_template, Response, request
 from flask_restx import Api, Resource, fields, reqparse
@@ -459,17 +461,31 @@ def register(api, db_filename):
         "cert_id": StrField("Signing certificate id", required=True),
         "signing_cert_fingerprint": StrField("Signing certificate fingerprint", required=True),
         "created_at": StrField("Creation timestamp", required=True),
+        "validation_token": StrField("One-time verification token", required=False),
+        "validation_url": StrField("Public verification URL (ephemeral)", required=False),
+        "expires_at": StrField("Token expiry timestamp (ISO-8601 UTC)", required=False),
         "attachments": fields.List(fields.Raw, required=False)
     })
 
     verify_reply_model = api.model("MailVerifyReply", {
         "message_ok": fields.Boolean(required=True),
         "attachments_ok": fields.Boolean(required=True),
+        "certificate_ok": fields.Boolean(required=True),
         "signer_uid": StrField("Signer uid", required=True),
         "fingerprint": StrField("Key fingerprint", required=True),
         "details": StrField("Verification details", required=True)
     })
 
+    public_verify_model = api.model("PublicVerifyReply", {
+        "message_ok": fields.Boolean(required=True),
+        "certificate_ok": fields.Boolean(required=True),
+        "signer_uid": StrField("Signer uid", required=True),
+        "fingerprint": StrField("Signing certificate SHA-256 fingerprint", required=True),
+        "subject": StrField("Mail subject", required=True),
+        "recipient": StrField("Mail recipient", required=True),
+        "created_at": StrField("Message creation timestamp", required=True),
+        "details": StrField("Human-readable verification result", required=True)
+    })
 
     @api.route("/mail")
     class MailResource(Resource):
@@ -513,6 +529,20 @@ def register(api, db_filename):
             if not body_ok:
                 api.abort(400, "Invalid body signature")
 
+            recipient_lower = payload["recipient"].strip().lower()
+            recipient_users = db.list_users(mail=recipient_lower)
+            is_external = len(recipient_users) == 0
+
+            if is_external:
+                validation_token = secrets.token_hex(16).upper()
+                expires_at = (datetime.utcnow() + timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%S")
+                base_url = os.environ.get("PUBLIC_BASE_URL", "http://localhost:8000/api")
+                validation_url = base_url + "/public/verify/" + validation_token
+            else:
+                validation_token = None
+                expires_at = None
+                validation_url = None
+
             msg_id = db.add_mail_message(
                 payload["uid"],
                 payload["recipient"],
@@ -520,7 +550,10 @@ def register(api, db_filename):
                 payload["body"],
                 payload["body_sig"],
                 cert_rec["id"],
-                mail_crypto.cert_fingerprint_sha256(cert)
+                mail_crypto.cert_fingerprint_sha256(cert),
+                validation_token=validation_token,
+                validation_url=validation_url,
+                expires_at=expires_at
             )
 
             for att in payload.get("attachments", []):
@@ -532,7 +565,7 @@ def register(api, db_filename):
                     att["sig"]
                 )
                 if not att_ok:
-                    api.abort(400, f"Invalid signature for attachment '{att['filename']}'")
+                    api.abort(400, "Invalid signature for attachment '" + att["filename"] + "'")
 
                 db.add_mail_attachment(
                     msg_id,
@@ -543,7 +576,11 @@ def register(api, db_filename):
                     mail_crypto.sha256_bytes(raw)
                 )
 
-            return {"id": msg_id}, 201
+            return {
+                "id": msg_id,
+                "validation_token": validation_token,
+                "validation_url": validation_url
+            }, 201
 
     from flask_cors import CORS
     CORS(api.app)
@@ -592,6 +629,20 @@ def register(api, db_filename):
 
             cert_fpr = mail_crypto.cert_fingerprint_sha256(cert)
 
+            recipient_lower = recipient.strip().lower()
+            recipient_users = db.list_users(mail=recipient_lower)
+            is_external = len(recipient_users) == 0
+
+            if is_external:
+                validation_token = secrets.token_hex(16).upper()
+                expires_at = (datetime.utcnow() + timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%S")
+                base_url = os.environ.get("PUBLIC_BASE_URL", "http://localhost:8000/api")
+                validation_url = base_url + "/public/verify/" + validation_token
+            else:
+                validation_token = None
+                expires_at = None
+                validation_url = None
+
             msg_id = db.add_mail_message(
                 uid,
                 recipient,
@@ -599,7 +650,10 @@ def register(api, db_filename):
                 body,
                 body_sig,
                 cert_rec["id"],
-                cert_fpr
+                cert_fpr,
+                validation_token=validation_token,
+                validation_url=validation_url,
+                expires_at=expires_at
             )
 
             for att in attachments:
@@ -618,6 +672,8 @@ def register(api, db_filename):
             return {
                 "error": False,
                 "id": msg_id,
+                "validation_token": validation_token,
+                "validation_url": validation_url,
                 "message": "Correo firmado y guardado"
             }, 201
 
@@ -651,10 +707,12 @@ def register(api, db_filename):
             cert = cert_rec["cert"]
             cert_pem = cert.public_bytes(serialization.Encoding.PEM).decode()
 
+            body_to_verify = msg.get("body_raw", msg["body"])
+
             canonical_body = mail_crypto.canonicalize_body(
                 msg["subject"],
                 msg["recipient"],
-                msg["body"]
+                body_to_verify
             )
 
             body_ok = mail_crypto.verify_bytes(
@@ -676,13 +734,93 @@ def register(api, db_filename):
                     atts_ok = False
                     break
 
+            cert_ok = (
+                not cert_rec["revoked"] and
+                cert_rec["not_before"] <= date.today() and
+                cert_rec["not_after"] >= date.today()
+            )
+
             return {
                 "message_ok": body_ok,
                 "attachments_ok": atts_ok,
+                "certificate_ok": cert_ok,
                 "signer_uid": msg["sender_uid"],
                 "fingerprint": msg["signing_cert_fingerprint"],
-                "details": "Valid signature" if body_ok and atts_ok else "Invalid signature or modified content"
+                "details": "Valid signature" if (body_ok and atts_ok and cert_ok)
+                           else "Invalid signature, modified content, or invalid certificate"
             }
+        
+    @api.route("/public/verify/<string:token>")
+    @api.doc(description="Ephemeral one-time verification link for a signed message")
+    @api.param("token", "The single-use verification token included in the signed message")
+    class PublicVerify(Resource):
+        @api.marshal_with(public_verify_model)
+        def get(self, token):
+            msg = db.get_mail_message_by_token(token)
+            if msg is None:
+                api.abort(404, "Token invalido o no encontrado")
+
+            if msg.get("token_used", False):
+                api.abort(410, "Este enlace ya fue utilizado y no puede reutilizarse")
+
+            expires_at_str = msg.get("expires_at")
+            if expires_at_str is not None:
+                try:
+                    expires_dt = datetime.strptime(expires_at_str[:19], "%Y-%m-%dT%H:%M:%S")
+                    if datetime.utcnow() > expires_dt:
+                        api.abort(410, "Este enlace ha expirado (valido por 24 horas)")
+                except ValueError:
+                    api.abort(500, "Error interno al verificar la expiracion del token")
+
+            # Consume el token ANTES de la verificacion criptografica (Zero-Trust: un solo uso)
+            db.mark_token_used(token)
+
+            cert_rec = db.get_cert(msg["cert_id"])
+            if cert_rec is None:
+                api.abort(400, "Certificado firmante no encontrado en la base de datos")
+
+            cert = cert_rec["cert"]
+            cert_pem = cert.public_bytes(serialization.Encoding.PEM).decode()
+
+            # Verificar contra body_raw para no incluir el footer de verificacion en la firma
+            body_to_verify = msg.get("body_raw", msg["body"])
+
+            canonical_body = mail_crypto.canonicalize_body(
+                msg["subject"],
+                msg["recipient"],
+                body_to_verify
+            )
+
+            body_ok = mail_crypto.verify_bytes(
+                cert_pem,
+                canonical_body,
+                msg["body_sig"]
+            )
+
+            cert_ok = (
+                not cert_rec["revoked"] and
+                cert_rec["not_before"] <= date.today() and
+                cert_rec["not_after"] >= date.today()
+            )
+
+            if body_ok and cert_ok:
+                details = "Firma criptografica valida. El contenido no ha sido alterado."
+            elif not cert_ok:
+                details = "Certificado firmante revocado o fuera de periodo de validez."
+            else:
+                details = "Firma invalida. El contenido pudo haber sido modificado."
+
+            return {
+                "message_ok": body_ok,
+                "certificate_ok": cert_ok,
+                "signer_uid": msg["sender_uid"],
+                "fingerprint": msg["signing_cert_fingerprint"],
+                "subject": msg["subject"],
+                "recipient": msg["recipient"],
+                "created_at": msg["created_at"],
+                "details": details
+            }
+
 #'''
     register_auth_endpoints(api)
 
