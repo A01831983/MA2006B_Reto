@@ -36,12 +36,12 @@ class LevelEnum(Enum):
     Coordinador = "coordinador"
     Operativo = "operativo"
     Captura = "captura"
-    Voluntario = "captura"
 lvls = tuple(l.value for l in LevelEnum)
 
 
 def register(api, db_filename):
     db.init(db_filename) # Open database
+    _bootstrap_admin()
 
     # Schemas
     user_model = {
@@ -52,7 +52,7 @@ def register(api, db_filename):
                           required=True),
         "lvl": EnumField(LevelEnum, description="Access level of the user",
                          required=True,
-                         default=LevelEnum.Voluntario.value),
+                         default=LevelEnum.Captura.value),
         "mail": StrField("Email address of the user", required=True),
         "joined": fields.Date(description="When the user entered the organisation",
                               required=True)
@@ -65,7 +65,11 @@ def register(api, db_filename):
 
     usercreatereply_model = {
         "id": StrField("The permament ID of the freshly created user",
-                       required=True)
+                       required=True),
+        "temp_password": StrField("The temporary password assigned to the user. "
+                                  "Must be shared with the user; they will be "
+                                  "asked to change it on first login.",
+                                  required=True)
     }
     UserCreateReply_m = api.model("UserCreateReply", usercreatereply_model)
 
@@ -76,7 +80,7 @@ def register(api, db_filename):
                           required=False),
         "lvl": EnumField(LevelEnum, description="Access level of the user",
                          required=False,
-                         default=LevelEnum.Voluntario.value),
+                         default=LevelEnum.Captura.value),
         "mail": StrField("Email address of the user", required=False),
         "joined": fields.Date(description="When the user entered the organisation",
                               required=False)
@@ -211,6 +215,22 @@ def register(api, db_filename):
         @api.marshal_with(UserCreateReply_m)
         @api.doc(description="Create a new user")
         def post(self):
+            from . import auth
+
+            actor = _get_current_user_from_token()
+            if actor is None:
+                api.abort(401, "Authentication required")
+
+            target_lvl = api.payload.get("lvl", "")
+
+            if actor["lvl"] == "admin":
+                pass
+            elif actor["lvl"] == "coordinador":
+                if target_lvl not in ("operativo", "captura"):
+                    api.abort(403, "Coordinators can only create operativo or captura users")
+            else:
+                api.abort(403, "You are not allowed to create users")
+
             if "mail" in api.payload.keys():
                 if not validators.email(api.payload["mail"]):
                     api.abort(400, "'mail' must be a valid email")
@@ -222,11 +242,15 @@ def register(api, db_filename):
                 api.abort(400, _des_date_err("joined", api.payload["joined"]))
 
             try:
-                ret = db.add_user(**api.payload)
+                new_uid = db.add_user(**api.payload)
             except Exception as e:
                 api.abort(400, f"Error adding user to database: {e}")
-            
-            return {"id": ret}
+
+            temp_password = auth.generate_temp_password()
+            password_hash = auth.hash_password(temp_password)
+            db.set_auth(new_uid, password_hash, must_change=True)
+
+            return {"id": new_uid, "temp_password": temp_password}
 
         @api.doc(params={
             "uid": {"description": "The id of the user which to modify (must match uniquely)",
@@ -234,11 +258,30 @@ def register(api, db_filename):
         }, description="Change the data of a specific user")
         @api.expect(UserModify_m)
         def patch(self):
+            actor = _get_current_user_from_token()
+            if actor is None:
+                api.abort(401, "Authentication required")
+
             args = uid_p.parse_args()
 
             usrs = db.list_users(uid=args["uid"])
             if len(usrs) != 1:
                 api.abort(400, _not_unique_err("uid", "user", len(usrs)))
+
+            target_user = usrs[0]
+
+            if actor["lvl"] == "admin":
+                pass
+            elif actor["lvl"] == "coordinador":
+                if target_user["dept"] != actor["dept"]:
+                    api.abort(403, "Coordinators can only edit users in their own department")
+                if target_user["lvl"] not in ("operativo", "captura"):
+                    api.abort(403, "Coordinators can only edit operativo or captura users")
+                new_lvl = api.payload.get("lvl")
+                if new_lvl and new_lvl not in ("operativo", "captura"):
+                    api.abort(403, "Coordinators cannot promote users to admin or coordinador")
+            else:
+                api.abort(403, "You are not allowed to edit users")
 
             if "mail" in api.payload.keys():
                 if not validators.email(api.payload["mail"]):
@@ -641,6 +684,7 @@ def register(api, db_filename):
                 "details": "Valid signature" if body_ok and atts_ok else "Invalid signature or modified content"
             }
 #'''
+    register_auth_endpoints(api)
 
     return api
 
@@ -677,3 +721,205 @@ def _des_date(d):
 
 def _des_date_err(field_name, v):
     return f"Invalid format for '{field_name}': Shall be date as in YYYY-MM-DD"
+
+# ─── AUTHENTICATION HELPERS (used by other endpoints) ────────────────────────
+
+def _get_current_user_from_token():
+    """Decodifica el JWT del header Authorization y devuelve el usuario actual.
+    Devuelve None si no hay token, el token es inválido, o el usuario no existe.
+    """
+    from . import auth
+
+    header = request.headers.get("Authorization", "")
+    if not header.startswith("Bearer "):
+        return None
+
+    token = header[7:].strip()
+    payload = auth.decode_jwt(token)
+    if payload is None:
+        return None
+
+    all_users = db.list_users()
+    matches = [u for u in all_users if u["id"] == payload["uid"]]
+
+    if len(matches) != 1:
+        return None
+
+    return matches[0]
+
+# ─── AUTHENTICATION ENDPOINTS ─────────────────────────────────────────────────
+def register_auth_endpoints(api):
+    from . import auth
+
+    login_model = api.model("AuthLogin", {
+        "mail": StrField("Email address", required=True),
+        "password": StrField("Password", required=True)
+    })
+
+    login_reply_model = api.model("AuthLoginReply", {
+        "token": StrField("JWT access token", required=True),
+        "must_change_password": fields.Boolean(required=True),
+        "uid": StrField("User ID", required=True),
+        "name": StrField("Full name", required=True),
+        "lvl": StrField("Access level", required=True),
+        "dept": StrField("Department", required=True)
+    })
+
+    me_reply_model = api.model("AuthMeReply", {
+        "uid": StrField("User ID", required=True),
+        "name": StrField("Full name", required=True),
+        "mail": StrField("Email address", required=True),
+        "lvl": StrField("Access level", required=True),
+        "dept": StrField("Department", required=True),
+        "must_change_password": fields.Boolean(required=True)
+    })
+
+    change_pwd_model = api.model("AuthChangePassword", {
+        "old_password": StrField("Current password", required=True),
+        "new_password": StrField("New password", required=True)
+    })
+
+    def _get_current_user():
+        header = request.headers.get("Authorization", "")
+        if not header.startswith("Bearer "):
+            return None
+
+        token = header[7:].strip()
+        payload = auth.decode_jwt(token)
+        if payload is None:
+            return None
+
+        usrs = db.list_users(uid=payload["uid"])
+        if len(usrs) != 1:
+            return None
+
+        return usrs[0]
+
+    @api.route("/auth/login")
+    class AuthLogin(Resource):
+        @api.expect(login_model)
+        @api.marshal_with(login_reply_model)
+        def post(self):
+            mail = api.payload.get("mail", "").strip().lower()
+            password = api.payload.get("password", "")
+
+            if not mail or not password:
+                api.abort(400, "Email and password are required")
+
+            all_users = db.list_users()
+            matches = [u for u in all_users if u["mail"].lower() == mail]
+
+            if len(matches) != 1:
+                api.abort(401, "Invalid credentials")
+
+            usr = matches[0]
+
+            auth_rec = db.get_auth(usr["id"])
+            if auth_rec is None:
+                api.abort(401, "Invalid credentials")
+
+            if not auth.verify_password(password, auth_rec["password_hash"]):
+                api.abort(401, "Invalid credentials")
+
+            token = auth.create_jwt(usr["id"], usr["lvl"], usr["dept"])
+
+            return {
+                "token": token,
+                "must_change_password": auth_rec.get("must_change_password", False),
+                "uid": usr["id"],
+                "name": usr["name"],
+                "lvl": usr["lvl"],
+                "dept": usr["dept"]
+            }
+
+    @api.route("/auth/me")
+    class AuthMe(Resource):
+        @api.marshal_with(me_reply_model)
+        def get(self):
+            usr = _get_current_user()
+            if usr is None:
+                api.abort(401, "Not authenticated")
+
+            auth_rec = db.get_auth(usr["id"])
+            must_change = auth_rec.get("must_change_password", False) if auth_rec else False
+
+            return {
+                "uid": usr["id"],
+                "name": usr["name"],
+                "mail": usr["mail"],
+                "lvl": usr["lvl"],
+                "dept": usr["dept"],
+                "must_change_password": must_change
+            }
+
+    @api.route("/auth/change-password")
+    class AuthChangePassword(Resource):
+        @api.expect(change_pwd_model)
+        def post(self):
+            usr = _get_current_user()
+            if usr is None:
+                api.abort(401, "Not authenticated")
+
+            old_password = api.payload.get("old_password", "")
+            new_password = api.payload.get("new_password", "")
+
+            if not old_password or not new_password:
+                api.abort(400, "Both old_password and new_password are required")
+
+            if len(new_password) < 8:
+                api.abort(400, "New password must be at least 8 characters")
+
+            auth_rec = db.get_auth(usr["id"])
+            if auth_rec is None:
+                api.abort(400, "User has no auth record")
+
+            if not auth.verify_password(old_password, auth_rec["password_hash"]):
+                api.abort(401, "Old password is incorrect")
+
+            new_hash = auth.hash_password(new_password)
+            db.set_auth(usr["id"], new_hash, must_change=False)
+
+            return {"status": "ok"}, 200
+
+    @api.route("/auth/logout")
+    class AuthLogout(Resource):
+        def post(self):
+            return {"status": "ok"}, 200
+        
+# ─── BOOTSTRAP ────────────────────────────────────────────────────────────────
+
+def _bootstrap_admin():
+    from . import auth
+
+    existing_auth = db.auth_table.all() if db.auth_table is not None else []
+    if len(existing_auth) > 0:
+        return
+
+    print("=" * 60)
+    print("Bootstrapping initial admin user...")
+
+    all_users = db.list_users()
+    existing_admin = next(
+        (u for u in all_users if u["mail"].lower() == "admin@casamonarca.mx"),
+        None
+    )
+
+    if existing_admin is not None:
+        uid = existing_admin["id"]
+        print("  An admin user with this email already exists, reusing it.")
+    else:
+        uid = db.add_user(
+            name="Administrador Casa Monarca",
+            dept="TI",
+            lvl="admin",
+            mail="admin@casamonarca.mx",
+            joined=date.today()
+        )
+
+    password_hash = auth.hash_password("admin123")
+    db.set_auth(uid, password_hash, must_change=True)
+
+    print(f"  Email:    admin@casamonarca.mx")
+    print(f"  Password: admin123 (must change on first login)")
+    print(f"  UID:      {uid}")
+    print("=" * 60)
