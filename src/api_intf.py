@@ -598,7 +598,6 @@ def register(api, db_filename):
             subject = payload.get("subject")
             body = payload.get("body")
             private_key_pem = payload.get("private_key_pem")
-            password = payload.get("password")
             attachments = payload.get("attachments", [])
 
             missing = [k for k in ["uid", "recipient", "subject", "body", "private_key_pem"] if not payload.get(k)]
@@ -623,7 +622,7 @@ def register(api, db_filename):
 
             body_sig = mail_crypto.sign_bytes(
                 private_key_pem,
-                password,
+                None,
                 canonical_body
             )
 
@@ -658,7 +657,7 @@ def register(api, db_filename):
 
             for att in attachments:
                 raw = mail_crypto.b64decode_bytes(att["content_b64"])
-                sig = mail_crypto.sign_bytes(private_key_pem, password, raw)
+                sig = mail_crypto.sign_bytes(private_key_pem, None, raw)
 
                 db.add_mail_attachment(
                     msg_id,
