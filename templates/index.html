@@ -992,10 +992,6 @@
             <div class="table-count" id="mail-table-count">Cargando correos...</div>
           </div>
           <div class="filters">
-            <button class="btn" onclick="openModal('x509cert')">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="3" y="1.5" width="10" height="13" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M6 8.5l2 2 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Registrar certificado
-            </button>
             <button class="btn btn-primary" onclick="openMailCompose()">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M11 3l2 2-7 7H4v-2l7-7z" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Redactar correo
@@ -1016,27 +1012,26 @@
                 <div class="modal-body">
                   <div class="form-row">
                     <div class="form-group">
-                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                      <div style="margin-bottom:5px">
                         <label class="form-label" style="margin:0">UID del remitente</label>
-                        <button type="button" style="font-size:11px;color:var(--green-700);background:none;border:none;cursor:pointer;padding:0;font-family:var(--font)" onclick="fillMyUid()">Usar mi UID</button>
                       </div>
                       <input id="mail-uid" class="form-input" placeholder="Ej. 1032352645">
                     </div>
                     <div class="form-group">
                       <label class="form-label">Destinatario</label>
-                      <input id="mail-recipient" class="form-input" placeholder="juez@tribunal.gob.mx" type="email" oninput="_updateRecipientTag(this.value)">
+                      <input id="mail-recipient" class="form-input" placeholder="example@mail.com" type="email" oninput="_updateRecipientTag(this.value)">
                       <div id="mail-recipient-tag" style="display:none;margin-top:5px"></div>
                     </div>
                   </div>
 
                   <div class="form-group">
                     <label class="form-label">Asunto</label>
-                    <input id="mail-subject" class="form-input" placeholder="Ej. Solicitud de asilo — Expediente CM-2026-001">
+                    <input id="mail-subject" class="form-input" placeholder="Asunto del correo">
                   </div>
 
                   <div class="form-group">
                     <label class="form-label">Mensaje</label>
-                    <textarea id="mail-body" class="form-input" style="min-height:120px;resize:vertical" placeholder="Escribe el contenido oficial del correo…"></textarea>
+                    <textarea id="mail-body" class="form-input" style="min-height:120px;resize:vertical" placeholder="Escribe el contenido del correo."></textarea>
                   </div>
 
                   <div style="border-top:1px dashed var(--border);margin:4px 0 4px;padding-top:14px">
@@ -1047,11 +1042,6 @@
                     <label class="form-label">Clave privada PEM del firmante</label>
                     <textarea id="mail-private-key" class="form-input" style="min-height:130px;font-family:var(--font-mono);font-size:11px;resize:vertical" placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;MIIEpQIBAAKCAQEA...&#10;-----END RSA PRIVATE KEY-----"></textarea>
                     <span style="font-size:11px;color:var(--text-hint);margin-top:3px;display:block">La clave se usa localmente para firmar y se descarta. Nunca se transmite al servidor.</span>
-                  </div>
-
-                  <div class="form-group">
-                    <label class="form-label">Contraseña de la clave <span style="font-weight:400;color:var(--text-hint)">(dejar vacío si la clave no tiene contraseña)</span></label>
-                    <input id="mail-password" type="password" class="form-input" placeholder="Solo si la clave está cifrada">
                   </div>
 
                   <div class="form-group">
@@ -1318,36 +1308,6 @@
       </button>
     </div>
 
-<!-- MODAL CERTIFICADO X.509 -->
-<div class="overlay" id="overlay-x509cert" onclick="closeModalOutside(event,'overlay-x509cert')">
-  <div class="modal" style="width:640px;max-width:calc(100vw - 40px)">
-    <div class="modal-head">
-      <div>
-        <div class="modal-title">Registrar certificado X.509</div>
-        <div class="modal-subtitle">Asocia un certificado público a un usuario interno</div>
-      </div>
-      <button class="icon-btn" onclick="closeModal('x509cert')">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">UID del usuario</label>
-        <input id="x509-uid" class="form-input" placeholder="Ej. 12345678">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Certificado PEM</label>
-        <textarea
-          id="x509-cert-pem"
-          class="form-input"
-          style="min-height:160px;font-family:var(--font-mono)"
-          placeholder="-----BEGIN CERTIFICATE-----"></textarea>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn" onclick="closeModal('x509cert')">Cancelar</button>
-      <button class="btn btn-primary" onclick="registerX509Cert()">Registrar certificado</button>
-    </div>
-  </div>
-</div>
 
 
 <!-- TOAST -->
@@ -1536,51 +1496,15 @@ function fillMyUid() {
   if (el && !el.value) el.value = CURRENT_USER.uid || '';
 }
 
-async function registerX509Cert() {
-  const cert_pem = document.getElementById('x509-cert-pem')?.value.trim();
-
-  if (!cert_pem) {
-    showToast('El certificado PEM es obligatorio.', 'danger');
-    return;
-  }
-  if (!cert_pem.includes('-----BEGIN CERTIFICATE-----')) {
-    showToast('El texto no parece un certificado X.509 PEM válido.', 'danger');
-    return;
-  }
-
-  const btn = document.querySelector('#overlay-x509cert .btn-primary');
-  if (btn) { btn.disabled = true; btn.textContent = 'Registrando…'; }
-
-  // POST /api/certs espera { raw: "<PEM>" } y extrae el usuario del propio certificado
-  const res = await apiFetch('certs', {
-    method: 'POST',
-    body: JSON.stringify({ raw: cert_pem })
-  });
-
-  if (btn) { btn.disabled = false; btn.textContent = 'Registrar certificado'; }
-
-  if (!res || res.error || res.message) {
-    const msg = (res && (res.message || res.errors)) || 'No se pudo registrar el certificado.';
-    showToast(typeof msg === 'string' ? msg : JSON.stringify(msg), 'danger');
-    return;
-  }
-
-  showToast('Certificado registrado correctamente.', 'success');
-  document.getElementById('x509-uid').value = '';
-  document.getElementById('x509-cert-pem').value = '';
-  closeModal('x509cert');
-  await loadAll();
-}
 
 async function sendSignedMailX509() {
   const uidEl = document.getElementById('mailx-uid');
   const subjectEl = document.getElementById('mailx-subject');
   const bodyEl = document.getElementById('mailx-body');
   const privateKeyEl = document.getElementById('mailx-private-key');
-  const passwordEl = document.getElementById('mailx-password');
   const attachmentsEl = document.getElementById('mailx-attachments');
 
-  if (!uidEl || !subjectEl || !bodyEl || !privateKeyEl || !passwordEl || !attachmentsEl) {
+  if (!uidEl || !subjectEl || !bodyEl || !privateKeyEl || !attachmentsEl) {
     console.error('Faltan elementos del formulario X.509');
     showToast('El formulario X.509 no está bien conectado.', 'danger');
     return;
@@ -1590,7 +1514,6 @@ async function sendSignedMailX509() {
   const subject = subjectEl.value.trim();
   const body = bodyEl.value.trim();
   const private_key_pem = privateKeyEl.value.trim();
-  const password = passwordEl.value;
   const files = Array.from(attachmentsEl.files || []);
 
   if (!uid || !subject || !body || !private_key_pem) {
@@ -1613,7 +1536,6 @@ async function sendSignedMailX509() {
     subject,
     body,
     private_key_pem: privatekeypem,
-    password,
     attachments
   };
 
@@ -1624,7 +1546,6 @@ async function sendSignedMailX509() {
       subject,
       body,
       private_key_pem,
-      password,
       attachments
     })
   });
@@ -1640,7 +1561,6 @@ async function sendSignedMailX509() {
   subjectEl.value = '';
   bodyEl.value = '';
   privateKeyEl.value = '';
-  passwordEl.value = '';
   attachmentsEl.value = '';
 
   closeModal('mail-compose-x509');
@@ -2596,7 +2516,7 @@ async function sendSignedMail() {
 
   // 4. Limpiar formulario y cerrar modal
   ['mail-uid','mail-recipient','mail-subject','mail-body',
-   'mail-private-key','mail-password','mail-attachments'].forEach(id => {
+   'mail-private-key','mail-attachments'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
