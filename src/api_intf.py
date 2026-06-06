@@ -14,7 +14,9 @@ import secrets
 from flask import jsonify, render_template, Response, request
 from flask_restx import Api, Resource, fields, reqparse
 from cryptography import x509
-from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
 import validators
 
 from . import ccore
@@ -430,6 +432,51 @@ def register(api, db_filename):
             cert = certs[0]["cert"]
             
             return {"raw": cert.public_bytes(serialization.Encoding.PEM).decode()}
+
+    @api.route("/users/<string:uid>/generate_cert")
+    @api.doc(description="Generate a self-signed certificate for a user (demo use only)")
+    class GenerateCert(Resource):
+        def post(self, uid):
+            usrs = db.list_users(uid=uid)
+            if len(usrs) != 1:
+                api.abort(404, f"User '{uid}' not found")
+
+            usr = usrs[0]
+
+            key = rsa.generate_private_key(public_exponent=65537, key_size=4096)
+
+            subject = x509.Name([
+                x509.NameAttribute(NameOID.COUNTRY_NAME, "MX"),
+                x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "Nuevo León"),
+                x509.NameAttribute(NameOID.LOCALITY_NAME, "Monterrey"),
+                x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Casa Monarca DUMMY TEST NOT REAL"),
+                x509.NameAttribute(NameOID.GIVEN_NAME, usr["name"]),
+                x509.NameAttribute(NameOID.EMAIL_ADDRESS, usr["mail"]),
+                x509.NameAttribute(NameOID.SERIAL_NUMBER, uid),
+                x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME,
+                                   usr["dept"] + "," + usr["lvl"]),
+            ])
+
+            cert = (x509.CertificateBuilder()
+                .subject_name(subject)
+                .issuer_name(subject)
+                .public_key(key.public_key())
+                .serial_number(x509.random_serial_number())
+                .not_valid_before(datetime.now())
+                .not_valid_after(datetime.now() + timedelta(weeks=4))
+                .sign(key, hashes.SHA256()))
+
+            db.add_cert(uid, cert)
+
+            return {
+                "private_key_pem": key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.TraditionalOpenSSL,
+                    encryption_algorithm=serialization.NoEncryption()
+                ).decode(),
+                "cert_pem": cert.public_bytes(serialization.Encoding.PEM).decode(),
+                "expiration": cert.not_valid_after.strftime("%Y-%m-%d"),
+            }
 
 #'''
     # mail

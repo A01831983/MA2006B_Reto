@@ -2336,22 +2336,26 @@ async function createUser() {
 
   await loadAll();
 
-  // Si el nivel requiere certificado, registrar el usuario como pendiente
-  // para que el modal de carga aparezca después del de contraseña temporal
   const lvlMeta = LEVEL_META[lvl];
-  if (lvlMeta && lvlMeta.hasCert) {
-    window.__PENDING_CERT_USER = { name, uid };
-  }
 
   // Mostrar contraseña temporal generada por el backend
   if (tempPassword) {
     openTempPwdModal({ mail, name, temp_password: tempPassword });
-  } else if (lvlMeta && lvlMeta.hasCert) {
-    // No hubo contraseña temporal pero sí cert pendiente: abrir cert directamente
-    window.__PENDING_CERT_USER = null;
-    showCertUploadNotice(name, uid);
   } else {
     showToast(`Usuario ${name} registrado correctamente`, 'success');
+  }
+
+  // Si el nivel requiere certificado, generarlo automáticamente y descargar los archivos
+  if (lvlMeta && lvlMeta.hasCert) {
+    const certRes = await apiFetch(`/users/${encodeURIComponent(uid)}/generate_cert`, { method: 'POST' });
+    if (certRes && !certRes._error) {
+      downloadPem(certRes.private_key_pem, `${uid}_llave.pem`);
+      downloadPem(certRes.cert_pem, `${uid}_certificado.pem`);
+      // Recargar CERTS para que la tarjeta de certificado funcione con datos reales
+      await loadAll();
+    } else {
+      showToast('Usuario creado, pero falló la generación del certificado', 'danger');
+    }
   }
 }
 
