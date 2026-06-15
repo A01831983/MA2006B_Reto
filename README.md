@@ -89,3 +89,11 @@ tabla de autenticación, por lo que no pueden iniciar sesión directamente. Sól
 inicial puede iniciar sesión inmediatamente con la contraseña `admin123`. Desde la interfaz web,
 el administrador puede crear y gestionar nuevos usuarios, que recibirán una contraseña temporal
 generada automáticamente al momento del registro.
+
+## Contactos de los responsables del proyecto
+Alberto Boughton Reyes - A01178500@tec.mx
+Diego Octavio Arias Incháustegui - A00838285@tec.mx
+Fernando Daniel Saucedo Hernández - A01385490@tec.mx
+Valeria Arciga Valencia - A01737555@tec.mx
+Ximena Montes Bautista - A01737949@tec.mx
+Henning Arvid Ladewig - A01831983@tec.mx 
